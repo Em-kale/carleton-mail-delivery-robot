@@ -8,7 +8,11 @@ setup(
     name=package_name,
     version='0.0.0',
     packages=[package_name],
-    py_modules=["tests.robot_driver_test","preceptions.IRDistanceCalc","control.actionTranslator",'tests.action_translator_test',"control.robotDriver","navigation.captain", "preceptions.beaconSensor","preceptions.bumperSensor"],
+    py_modules=["tests.robot_driver_test","preceptions.IRDistanceCalc",
+                "control.actionTranslator",'tests.action_translator_test',
+                "control.robotDriver","navigation.captain",
+                "preceptions.beaconSensor","preceptions.bumperSensor"
+                "tests.captain_test", "tests.bumper_sensor_test"],
     data_files=[
         # Install marker file in the package index
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -33,7 +37,9 @@ setup(
             'action_translator = control.actionTranslator:main',
             'robot_driver = control.robotDriver:main',
             'captain = navigation.captain:main',
-            'bumper_sensor = preceptions.bumperSensor:main'
+            'bumper_sensor = preceptions.bumperSensor:main',
+            'captain_test = tests.captain_test:main',
+            'bumper_sensor_test = tests.bumper_sensor_test:main'
         ],
     },
 )
