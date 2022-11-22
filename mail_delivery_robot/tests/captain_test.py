@@ -50,25 +50,5 @@ class CaptainNodeTest(unittest.TestCase):
         self.assertEqual(True, self.message_properly_processed, "Message not processed properly")
 
 
-# class JunctionSlopeTracker(unittest.TestCase):
-#     testSuccess = False
-#
-#     def __init__(self):
-#         self.junctionSlopeTracker = None
-#         self.dataPoint = None
-#
-#     def setUp(self):
-#         self.junctionSlopeTracker = JunctionSlopeTracker(10)
-#         # TODO Need to determine the exact format of the datapoint input
-#         # self.dataPoint = None
-#
-#     def test_addDataPoint(self):
-#         self.assertEqual(True, self.junctionSlopeTracker.addDataPoint(self.junctionSlopeTracker, self.dataPoint,
-#                                                                       self.get_logger()), 'Failed to add point')
-#
-#     def tearDown(self):
-#         self.junctionSlopeTracker.dispose()
-
-
 if __name__ == '__main__':
     unittest.main()
