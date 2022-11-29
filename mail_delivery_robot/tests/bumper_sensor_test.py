@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # @author: Favour Olotu
-import unittest
 from std_msgs.msg import String
 from create_msgs.msg import Bumper
 import rclpy
