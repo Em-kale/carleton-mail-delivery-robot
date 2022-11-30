@@ -11,7 +11,7 @@ setup(
     py_modules=["tests.robot_driver_test","preceptions.IRDistanceCalc",
                 "control.actionTranslator",'tests.action_translator_test',
                 "control.robotDriver","navigation.captain",
-                "preceptions.beaconSensor","preceptions.bumperSensor"
+                "preceptions.beaconSensor","preceptions.bumperSensor",
                 "tests.captain_test", "tests.bumper_sensor_test"],
     data_files=[
         # Install marker file in the package index
