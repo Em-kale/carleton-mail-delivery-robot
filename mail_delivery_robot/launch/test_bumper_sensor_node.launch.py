@@ -12,8 +12,8 @@ def generate_launch_description():
              remappings=[('/tests/bumper', '/preceptions/bumper')]),
         Node(package='mail_delivery_robot',
              namespace='preceptions',
-             executable='bumperSensor',
-             name='bumperSensor',
+             executable='bumper_sensor',
+             name='bumper_sensor',
              remappings=[('/preceptions/bumpEvent', '/tests/bumpEvent')]
              )
     ])

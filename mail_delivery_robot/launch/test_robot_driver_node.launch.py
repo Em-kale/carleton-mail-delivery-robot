@@ -14,8 +14,8 @@ def generate_launch_description():
                          ('/tests/bumpEvent', '/control/bumpEvent')]),
         Node(package='mail_delivery_robot',
              namespace='control',
-             executable='robotDriver',
-             name='robotDriver',
+             executable='robot_driver',
+             name='robot_driver',
              remappings=[('/control/actions', '/tests/actions')]
              )
     ])

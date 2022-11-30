@@ -13,7 +13,7 @@ class BumperSensorNodeTest(Node):
     test_count = 0
 
     def __init__(self):
-        super().__init__('test_bumper_sensor')
+        super().__init__('bumper_sensor_test')
 
         # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
         self.subscriber = self.create_subscription(String, 'bumpEvent', self.read_response, 10)

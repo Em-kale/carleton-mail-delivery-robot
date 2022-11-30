@@ -12,7 +12,7 @@ class CaptainNodeTest(Node):
     test_count = 0
 
     def __init__(self):
-        super().__init__('test_captain')
+        super().__init__('captain_test')
 
         # Create publisher and subscriber
         self.publisher = self.create_publisher(String, 'beacons', 2)

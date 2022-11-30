@@ -13,7 +13,7 @@ class RobotDriverNodeTest(Node):
     test_count = 0
 
     def __init__(self):
-        super().__init__('test_robot_driver')
+        super().__init__('robot_driver_test')
 
         # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
         self.subscriber = self.test_node.create_subscription(String, 'actions', self.callback, 10)
