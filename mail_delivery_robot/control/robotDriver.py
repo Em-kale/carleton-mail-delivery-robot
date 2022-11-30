@@ -5,6 +5,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from create_msgs.msg import Mode
 import time
 import csv
 import os
@@ -30,18 +31,18 @@ class DriverStateMachine:
     def __init__(self, initialState):
         self.currentState = initialState
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         return self.currentState.run(distanceFlags)
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         self.currentState = self.currentState.next(distanceFlags, bumperState)
 
 
 class DriverState:
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         assert 0, "Must be implemented"
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         assert 0, "Must be implemented"
 
     def toString(self):
@@ -50,18 +51,21 @@ class DriverState:
 # Assigned to Jake # TODO Create flag for undock message, currently set temp to "undock"
 class Docked(DriverState):
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
-        temp = "undock"
-        if temp == "undock":
+        #Passive mode means robot is currently docking or docked
+        #Full mode means robot is not docked
+        if mode == Mode.MODE_PASSIVE:
             action.data = "undock"
+        elif mode == Mode.MODE_FULL:
+            action.data = "dock"
         else:
             action.data = "stop"
         return action
 
-    def next(self, distanceFlags, bumperState):
-        temp = "undock"
-        if temp == "undock":
+    def next(self, distanceFlags, bumperState, mode):
+        #If control has been handed back to the program findWall
+        if mode == Mode.MODE_FULL:
             # TODO Pathfinder should either be called or setup by this point
             return DriverStateMachine.FindWall
         else:
@@ -73,12 +77,12 @@ class Docked(DriverState):
 # Assigned to Jake
 class FindWall(DriverState):
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
         action.data = "sright"
         return action
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         # if robot is too close to the wall or is turned towards it, turn left
         if ((distanceFlags["tooClose"] or distanceFlags["wideAngle"])):
             return DriverStateMachine.WallFollowing
@@ -94,7 +98,7 @@ class FindWall(DriverState):
 # Assigned to Chase
 class WallFollowing(DriverState):
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
         # if robot is too far from the wall or is turned away, turn right
         if ((distanceFlags["tooFar"] or distanceFlags["tightAngle"])):
@@ -107,7 +111,7 @@ class WallFollowing(DriverState):
             action.data = "forward"
         return action
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         pass
 
     def toString(self):
@@ -116,11 +120,11 @@ class WallFollowing(DriverState):
 # Assigned to Chase
 class IntersectionHandling(DriverState):
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
         return action
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         pass
 
     def toString(self):
@@ -129,11 +133,11 @@ class IntersectionHandling(DriverState):
 # Assigned to Chase
 class DestinationReached(DriverState):
 
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
         return action
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         pass
 
     def toString(self):
@@ -141,11 +145,11 @@ class DestinationReached(DriverState):
 
 # Assigned to Chase
 class CollisionHandling(DriverState):
-    def run(self, distanceFlags):
+    def run(self, distanceFlags, mode):
         action = String()
         return action
 
-    def next(self, distanceFlags, bumperState):
+    def next(self, distanceFlags, bumperState, mode):
         pass
 
     def toString(self):
@@ -174,10 +178,14 @@ class RobotDriver(Node):
             "wideAngle": False
         }
 
+        #default mode at startup
+        self.mode = Mode.MODE_FULL
+
         # configure publisher and subscribers
         self.actionPublisher = self.create_publisher(String, 'actions', 2)
         self.IRSubscriber = self.create_subscription(String, 'preceptions', self.updateDistance, 10)
         self.bumperEventSubscriber = self.create_subscription(String, 'bumpEvent', self.updateBumperState, 10)
+        self.modeSubscriber = self.create_publisher(Mode, 'mode', self.updateMode, 10)
         # TODO These will be implemented in future commits
         # self.mapSubscriber = self.create_subscription(String, 'navigationMap', self.updateMapState, 10)
 
@@ -190,14 +198,14 @@ class RobotDriver(Node):
 
     def determineAction(self):
         # get current action based on current state's run command
-        action = self.driverStateMachine.run(self.distanceFlags)
-        # if action doesn't equa 0, publish it to actions
+        action = self.driverStateMachine.run(self.distanceFlags, self.mode)
+        # if action doesn't equal 0, publish it to actions
         if (action.data != 0):
             self.get_logger().debug("Publishing: " + action.data)
             self.actionPublisher.publish(action)
 
     # update the robots distance flags based on data recieved from the IR sensors
-    def updateDistance(self, data):
+    def updateDistance(self, data): 
         if (data.data != "-1"):
             self.distance = data.data.split(",")[0]
             self.angle = data.data.split(",")[1]
@@ -209,6 +217,16 @@ class RobotDriver(Node):
         if (DEBUG_MODE):
             self.get_logger().info("Distance: " + str(self.distance) + "Angle: " + str(self.angle))
     
+    #Update the mode of the robot, passive means docked/docking, full means program control
+    def updateMode(self, data):
+        self.mode = data.data
+        if(DEBUG_MODE):
+            self.get_logger().debug("Current mode: " + self.mode)
+
+    #TODO implement mechanism that calls this
+    def updateDockState(self):
+        self.determineAction() 
+
     def updateBumperState(self, data):
         self.bumperState = data.data
         self.driverStateMachine.next(self.distanceFlags, self.bumperState)
