@@ -112,7 +112,6 @@ def distance(sensor1_distance, sensor2_distance):
             Parameters:
                     sensor1_distance (float): Distance reading (cm) from IR sensor 1
                     sensor2_distance (float): Distance reading (cm) from IR sensor 2
-
             Returns:
                     distance_angle_calc (str): A string tuple containing the distance_from_wall (cm)
                     and the angle_between_wall (deg) in the format: 'A,B'
@@ -124,20 +123,16 @@ def distance(sensor1_distance, sensor2_distance):
     # a is the distance between where the two censors make contact with the wall
     c = math.sqrt((sensor1_distance ** 2 + sensor2_distance ** 2) - (2 * sensor1_distance * sensor2_distance *
                                                                      math.cos(angle_between_sensors * math.pi / 180)))
-    # h is the height of the triangle
-    h = sensor1_distance * math.sin(angle_between_sensors * math.pi / 180)
-
-    # B is an angle we need to find distance from wall
-    B = math.asin(h / c)
-
-    # this is to get the robots actual distance from the wall it is following
-    distance_from_wall = sensor2_distance * math.sin(B)
+    # h is the height of the triangle, needed for the next two calculations
+    h = sensor2_distance * math.sin(angle_between_sensors * math.pi / 180)
 
     # this is to find angle A, which tells us if the robot is moving towards or away from the wall
     # an obtuse angle (greater than 90 degrees) means it is moving away
     # an acute angle (less than 90 degrees) means it is moving towards
-    angle_between_wall = math.acos(
-        (sensor1_distance ** 2 + c ** 2 - sensor2_distance ** 2) / (2 * sensor1_distance * c)) * 180 / math.pi
+    angle_between_wall = math.asin(h / c) * 180 / math.pi
+
+    # this is to get the robots actual distance from the wall it is following
+    distance_from_wall = sensor1_distance * math.sin(angle_between_wall * math.pi / 180)
 
     distance_angle_calc = str(abs(distance_from_wall)) + "," + str(angle_between_wall)
     print(distance_angle_calc)
