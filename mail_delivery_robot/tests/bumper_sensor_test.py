@@ -16,9 +16,8 @@ class BumperSensorNodeTest(Node):
         super().__init__('bumper_sensor_test')
 
         # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
-        self.subscriber = self.create_subscription(String, 'bumpEvent', self.read_response, 10)
+        self.subscriber = self.create_subscription(String, 'bumpEvent', self.callback, 10)
         self.publisher = self.create_publisher(Bumper, 'bumper', 2)
-
 
         self.get_logger().info('Executing tests...')
 
