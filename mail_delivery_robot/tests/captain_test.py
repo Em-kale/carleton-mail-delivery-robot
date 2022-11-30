@@ -28,8 +28,8 @@ class CaptainNodeTest(Node):
     def callback(self, message):
 
         # Check if returned values from actionTranslator are as expected
-        if message.data == "return":
-
+        if self.test_count == 0:
+            # Initial beacon message does not prompt any reply message
             self.get_logger().info("TEST 1 PASSED: Captain Navigation command as expected")
             # Increment test count so next loop runs test 2
             self.test_count += 1
