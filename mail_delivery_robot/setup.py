@@ -32,6 +32,7 @@ setup(
         'console_scripts': [
             'robot_driver_test = tests.robot_driver_test:main', 
             'action_translator_test = tests.action_translator_test:main', 
+            'perceptions_test = tests.perceptions_test:main',
             'IRSensor = preceptions.IRDistanceCalc:main',
             'beacon_reader = preceptions.beaconSensor:main',
             'action_translator = control.actionTranslator:main',
