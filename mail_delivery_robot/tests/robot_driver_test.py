@@ -58,7 +58,7 @@ class RobotDriverNodeTest(Node):
 
         else:
             self.get_logger().info(
-                f"TEST FAILED - INVALID Bumper message for {self.message}")
+                f"TEST FAILED - INVALID messages received")
 
     def test_throughput(self):
 
