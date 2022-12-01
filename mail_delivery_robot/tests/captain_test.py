@@ -60,7 +60,7 @@ class CaptainNodeTest(Node):
             self.get_logger().info(f"Sending The Beacon Data Again")
 
             message.data = "EE:16:86:9A:C2:A8,-40"
-            self.action_publisher.publish(message)
+            self.publisher.publish(message)
 
         else:
 

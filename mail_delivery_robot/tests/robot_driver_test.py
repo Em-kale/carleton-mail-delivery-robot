@@ -16,10 +16,10 @@ class RobotDriverNodeTest(Node):
         super().__init__('robot_driver_test')
 
         # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
-        self.subscriber = self.test_node.create_subscription(String, 'actions', self.callback, 10)
-        self.perception_publisher = self.test_node.create_publisher(String, 'preceptions', 10)
-        self.navigation_map_publisher = self.test_node.create_publisher(String, 'navigationMap', 10)
-        self.bump_event_publisher = self.test_node.create_publisher(String, 'bumpEvent', 10)
+        self.subscriber = self.create_subscription(String, 'actions', self.callback, 10)
+        self.perception_publisher = self.create_publisher(String, 'preceptions', 10)
+        self.navigation_map_publisher = self.create_publisher(String, 'navigationMap', 10)
+        self.bump_event_publisher = self.create_publisher(String, 'bumpEvent', 10)
 
         self.get_logger().info('Executing tests...')
 

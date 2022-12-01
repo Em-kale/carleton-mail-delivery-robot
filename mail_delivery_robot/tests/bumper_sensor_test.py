@@ -77,7 +77,7 @@ class BumperSensorNodeTest(Node):
 
             message.is_left_pressed = True
             message.is_right_pressed = False
-            self.action_publisher.publish(message)
+            self.publisher.publish(message)
 
         # When test one completed, run test two
         elif self.test_count == 2:
@@ -85,7 +85,7 @@ class BumperSensorNodeTest(Node):
 
             message.is_left_pressed = False
             message.is_right_pressed = True
-            self.action_publisher.publish(message)
+            self.publisher.publish(message)
 
         # When test one completed, run test two
         elif self.test_count == 3:
@@ -93,7 +93,7 @@ class BumperSensorNodeTest(Node):
 
             message.is_left_pressed = False
             message.is_right_pressed = False
-            self.action_publisher.publish(message)
+            self.publisher.publish(message)
 
         else:
 
