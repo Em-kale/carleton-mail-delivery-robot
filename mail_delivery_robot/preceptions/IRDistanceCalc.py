@@ -123,8 +123,6 @@ def distance(sensor1_distance, sensor2_distance):
     # a is the distance between where the two censors make contact with the wall
     c = math.sqrt((sensor1_distance ** 2 + sensor2_distance ** 2) - (2 * sensor1_distance * sensor2_distance *
                                                                      math.cos(angle_between_sensors * math.pi / 180)))
-    # h is the height of the triangle, needed for the next two calculations
-    h = sensor2_distance * math.sin(angle_between_sensors * math.pi / 180)
 
     # this is to find angle A, which tells us if the robot is moving towards or away from the wall
     # an obtuse angle (greater than 90 degrees) means it is moving away
