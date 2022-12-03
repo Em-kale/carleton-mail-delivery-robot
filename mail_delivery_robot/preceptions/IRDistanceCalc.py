@@ -129,7 +129,8 @@ def distance(sensor1_distance, sensor2_distance):
     # this is to find angle A, which tells us if the robot is moving towards or away from the wall
     # an obtuse angle (greater than 90 degrees) means it is moving away
     # an acute angle (less than 90 degrees) means it is moving towards
-    angle_between_wall = math.asin(h / c) * 180 / math.pi
+    angle_between_wall = math.acos(
+        (sensor1_distance ** 2 + c ** 2 - sensor2_distance ** 2) / (2 * sensor1_distance * c)) * 180 / math.pi
 
     # this is to get the robots actual distance from the wall it is following
     distance_from_wall = sensor1_distance * math.sin(angle_between_wall * math.pi / 180)
