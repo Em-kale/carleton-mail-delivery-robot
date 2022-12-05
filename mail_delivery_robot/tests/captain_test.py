@@ -1,74 +1,87 @@
 #!/usr/bin/env python
 # @author: Favour Olotu
-import unittest
 from std_msgs.msg import String
-from time import sleep
 import rclpy
+from rclpy.node import Node
 
 
 # Test class for testing the throughput of the captain node
-class CaptainNodeTest(unittest.TestCase):
-    message_properly_processed = False
+# Publishes a beacon message to the captain node
+# Subscribes to navigation to verify that the captain processes a beacon information correctly
+class CaptainNodeTest(Node):
+    test_count = 0
 
-    def callback(self, data):
-        # TODO add checking the content of the message processed
-        if data.data == "return":
-            self.message_properly_processed = True
+    def __init__(self):
+        super().__init__('captain_test')
 
-    # This function simulates how a beacon event is triggered
-    def simulate_message(self):
-        # TODO need to extract the exact message received from a beacons topic
+        # Create publisher and subscriber
+        self.publisher = self.create_publisher(String, 'beacons', 2)
+        self.subscriber = self.create_subscription(String, 'navigationMap', self.callback, 10)
+
+        self.get_logger().info('Executing tests...')
+
+        # Repeat test loop every 5 seconds
+        timer_time = 5
+        timer = self.create_timer(timer_time, self.test_throughput)
+
+    # This function is called every time a message is received
+    def callback(self, message):
+
+        # Check if returned values from actionTranslator are as expected
+        if self.test_count == 0:
+            # Initial beacon message does not prompt any reply message
+            self.get_logger().info("TEST 1 PASSED: Captain Navigation command as expected")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "return":
+
+            self.get_logger().info("TEST 2 PASSED: Captain Navigation command as expected")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        else:
+            self.get_logger().info(
+                f"TEST FAILED - INVALID TWiST VALUES for {self.current_message} {message.linear.x}, {message.angular.z}")
+
+    def test_throughput(self):
+
         message = String()
-        message.data = "EE:16:86:9A:C2:A8,-40"
-        self.publisher.publish(message)
-        # Will remove when the message details are sorted
-        self.message_properly_processed = True
-        sleep(1)
 
-    def setUp(self):
-        rclpy.init()
-        self.test_node = rclpy.create_node("test_captain")
-        sleep(1)
+        # Run test one - Publishes command to actions topic
+        if self.test_count == 0:
+            self.get_logger().info(f"Sending Initial Beacon Data")
 
-    def tearDown(self):
-        self.test_node.destroy_node()
-        rclpy.shutdown()
+            message.data = "EE:16:86:9A:C2:A8,-40"
+            self.publisher.publish(message)
 
-    # This test ensures all the communication topics are created
-    def test_topic_name(self):
-        topics = self.test_node.get_topic_names_and_types()
-        topic = "navigationMap"
-        topic2 = "beacons"
-        self.assertIn(topic, str(topics), "The expected topic not created")
-        self.assertIn(topic2, str(topics), "The expected topic2 not created")
+        # When test one completed, run test two
+        elif self.test_count == 1:
+            self.get_logger().info(f"Sending The Beacon Data Again")
 
-    # This test ensures that given a simulated input the right output is returned
-    def test_node_throughput(self):
-        self.subscriber = self.test_node.create_subscription(String, 'navigationMap', self.callback, 10)
-        self.publisher = self.test_node.create_publisher(String, 'beacons', 10)
-        self.simulate_message()
-        self.assertEqual(True, self.message_properly_processed, "Message not processed properly")
+            message.data = "EE:16:86:9A:C2:A8,-40"
+            self.publisher.publish(message)
+
+        else:
+
+            self.get_logger().info("TESTS PASSED SUCCESSFULLY")
+
+            # Exit
+            self.destroy_node()
 
 
-# class JunctionSlopeTracker(unittest.TestCase):
-#     testSuccess = False
-#
-#     def __init__(self):
-#         self.junctionSlopeTracker = None
-#         self.dataPoint = None
-#
-#     def setUp(self):
-#         self.junctionSlopeTracker = JunctionSlopeTracker(10)
-#         # TODO Need to determine the exact format of the datapoint input
-#         # self.dataPoint = None
-#
-#     def test_addDataPoint(self):
-#         self.assertEqual(True, self.junctionSlopeTracker.addDataPoint(self.junctionSlopeTracker, self.dataPoint,
-#                                                                       self.get_logger()), 'Failed to add point')
-#
-#     def tearDown(self):
-#         self.junctionSlopeTracker.dispose()
+# Initialize node
+def main(args=None):
+    rclpy.init()
+
+    test_node = CaptainNodeTest()
+
+    # Run Node on interval specified in the __init__ function, until it is killed
+    rclpy.spin(test_node)
+
+    test_node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

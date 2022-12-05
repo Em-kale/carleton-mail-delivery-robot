@@ -1,2 +1,9 @@
 .DS_Store
 venv
+.idea/carleton-mail-delivery-robot.iml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/workspace.xml
+.idea/modules.xml
+.idea/misc.xml
+.idea/vcs.xml
