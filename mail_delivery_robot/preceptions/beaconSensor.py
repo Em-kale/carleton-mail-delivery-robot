@@ -6,6 +6,7 @@ from rclpy.node import Node
 import sys
 from bluepy.btle import Scanner, DefaultDelegate
 import csv
+import os
 
 # Class instantiation which enables handleNotification and handleDiscovery debugging logs
 class ScanDelegate(DefaultDelegate):
@@ -18,9 +19,14 @@ def loadBeaconData():
     :return: List
     """
     beacons = {}
-    with open('/var/local/beaconList.csv') as csvfile:
+    ROOT_DIR = os.getcwd()
+    with open(f'{ROOT_DIR}/src/carleton-mail-delivery-robot/mail_delivery_robot/beaconList.csv') as csvfile:
         reader = csv.reader(csvfile,delimiter=",")
+        count = 0
         for row in reader:
+            if count == 0:
+                count += 1
+                continue
             beacons[row[0]] = row[1] # row[0] = index, row[1] = id
     return beacons
 
