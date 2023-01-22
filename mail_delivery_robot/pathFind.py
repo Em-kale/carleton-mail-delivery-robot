@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # @author: Emily Clarke
-# @author: Favour Olotu
 
 import csv, string
 
@@ -9,7 +8,7 @@ mapGraph = []
 # Loads map from csv file
 def loadMap(mapGraph):
     with open('/var/local/map.csv') as csvfile:
-    # with open('map.csv') as csvfile:
+    #with open('map.csv') as csvfile:
         reader = csv.reader(csvfile,delimiter=",")
         row_count = 0
         for row in reader:

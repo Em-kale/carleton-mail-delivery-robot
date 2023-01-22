@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# @author: Stephen Wicklund, Jacob Charpentier
+# @author: Stephen Wicklund, Jacob Charpentier, Favour Olotu
 # SUBSCRIBER:   beacons
 # PUBLISHER:    navigationMap
 import rclpy
