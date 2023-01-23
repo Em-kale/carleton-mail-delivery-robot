@@ -3,7 +3,7 @@
 
 # SUBSCRIBER:   localMap
 # SUBSCRIBER:   Requests
-# PUBLISHER:    navigation
+# PUBLISHER:    navigator
 
 import rclpy
 from rclpy.node import Node
@@ -14,9 +14,9 @@ import navigation_utilities
 class PlotNavigation(Node):
 
     def __init__(self):
-        super().__init__('plotNavigation')
+        super().__init__('plot_navigation')
 
-        self.navigation_publisher = self.create_publisher(String, 'navigation', 10)
+        self.navigation_publisher = self.create_publisher(String, 'navigator', 10)
         self.request_subscriber = self.create_subscription(String, 'Requests', self.handle_request, 10)
         self.local_map_subscriber = self.create_subscription(String, 'localMap', self.parse_local_map_data, 10)
 
@@ -47,6 +47,7 @@ class PlotNavigation(Node):
         self.get_logger().info('Received request from server to travel from junction: ' + job[0] + 'to junction: ' + job[1])
 
         # TODO Logic for queuing and queueing request while a current path is being followed
+        # Alternatively it my be worth it to implement on the server side
         self.current_path = navigation_utilities.breadth_first_search(self.map_graph, job[0], job[1])
         self.counter = 0
         self.get_logger().info("Current travel path: " + str(self.current_path))
@@ -90,8 +91,8 @@ class PlotNavigation(Node):
                 Navigation Message rubric: currentJunctionID nextJunctionID DirectionForGettingToNextJunction beaconIDForNextJunction [Destination]
                 Destination is only added if the next junction is the destination
 
-                Sample message published: "1 2 Straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
-                Sample message published: "1 2 Straight 4" => travel from junction 1 to 2 straight through beacon 4
+                Sample message published: "1 2 straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
+                Sample message published: "1 2 straight 4" => travel from junction 1 to 2 straight through beacon 4
                 Sample message published: "Destination" implies the robot just passed the beacon for destination junction (Docking should be initiated)
 
                 Note: Messages should be separated by a space

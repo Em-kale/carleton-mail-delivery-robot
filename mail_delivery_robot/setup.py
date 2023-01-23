@@ -12,7 +12,8 @@ setup(
                 "control.actionTranslator",'tests.action_translator_test',
                 "control.robotDriver","navigation.captain",
                 "preceptions.beaconSensor","preceptions.bumperSensor",
-                "tests.captain_test", "tests.bumper_sensor_test"],
+                "tests.captain_test", "tests.bumper_sensor_test",
+                "tests.plot_navigation_test", "navigation.plot_navigation"],
     data_files=[
         # Install marker file in the package index
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
@@ -41,6 +42,8 @@ setup(
             'bumper_sensor = preceptions.bumperSensor:main',
             'captain_test = tests.captain_test:main',
             'bumper_sensor_test = tests.bumper_sensor_test:main'
+            'plot_navigation = tests.plot_navigation:main'
+            'plot_navigation_test = tests.plot_navigation_test:main'
         ],
     },
 )
