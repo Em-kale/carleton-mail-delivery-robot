@@ -66,7 +66,7 @@ class PlotNavigationNodeTest(Node):
 
         # When test two completed, run test two
         elif self.test_count == 1:
-            self.get_logger().info(f"Sending a message")
+            self.get_logger().info(f"Sending beacon 4 passed message")
 
             local_map_message.data = "4 Passed"
 
@@ -74,7 +74,7 @@ class PlotNavigationNodeTest(Node):
 
         # When test three completed, run test two
         elif self.test_count == 2:
-            self.get_logger().info(f"Sending a message")
+            self.get_logger().info(f"Sending beacon 7 passed message")
 
             local_map_message.data = "7 Passed"
 

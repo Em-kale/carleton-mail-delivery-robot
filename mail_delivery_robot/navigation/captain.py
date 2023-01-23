@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # @author: Stephen Wicklund, Jacob Charpentier, Favour Olotu
 # SUBSCRIBER:   beacons
+# SUBSCRIBER:   navigator
 # PUBLISHER:    navigationMap
+# PUBLISHER:    localMap
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -78,30 +80,74 @@ class Captain(Node):
         super().__init__('captain')
         self.junctions = {}
         self.mapPublisher = self.create_publisher(String, 'navigationMap', 10)
+        self.local_map_publisher = self.create_publisher(String, 'localMap', 10)
         self.beaconSubscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
+        self.global_map_subscriber = self.create_subscription(String, 'navigator', self.read_navigator_message, 10)
+        self.direction = String()
 
-    def passedBeacon(self, junction):
-        # TODO: Determine how to turn at junction.
-        mapUpdate = String()
-        mapUpdate.data = "return"
-        self.mapPublisher.publish(mapUpdate)
+    def passedBeacon(self, beacon_id):
+        global_map_update = String()
+        global_map_update.data = beacon_id + " Passed"
+        self.local_map_publisher.publish(global_map_update)
+        # tell robot driver to start moving in the defined direction
+        self.mapPublisher.publish(self.direction)
 
     def readBeacon(self, beacon):
+        """
+        Expected beacon data: "EE:16:86:9A:C2:A8,-40,4"
+        """
         self.get_logger().debug('Received: "%s"' % beacon.data)
 
         if beacon.data.split(",")[0] in self.junctions:
             if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()):
                 self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
-                self.passedBeacon(beacon.data.split(",")[0])
+                self.passedBeacon(beacon.data.split(",")[2])
         else:
             self.junctions[beacon.data.split(",")[0]] = JunctionSlopeTracker(10)
             self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger())
 
-        # TODO: Determine if this code can be removed or if it should be reachable
+        """
         if False:
             f = open('captainLog.csv', "a")
             f.write(beacon.data + "\n")
             f.close()
+        """
+
+    def read_navigator_message(self, nav_message):
+        """
+        This function parses the message from the navigator and uses it to
+        send the directional message to the robot driver node
+
+        expected nav_message: "1 2 straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
+        expected nav_message: "1 2 straight 4" => travel from junction 1 to 2 straight through beacon 4
+        expected nav_message: "Destination" implies the robot just passed the beacon for destination junction (Docking should be initiated)
+
+        """
+        self.get_logger().debug('Received: "%s"' % nav_message.data)
+
+        message_list = nav_message.split(" ")
+        reply_message = String()
+
+        self.direction = message_list[2]
+
+        # if the robot as arrived at the destination send a docking message
+        if len(message_list) == 1 and message_list[0] == "Destination":
+            # TODO Need to confirm what message should be sent to the robot driver to initiate docking
+            reply_message.data = "Dock"
+            self.mapPublisher.publish(reply_message)
+
+        # if the next junction is the destination send a destination approach message
+        # elif len(message_list) == 5 and message_list[4] == "Destination":
+            # TODO determine how that information would be useful to the robot driver
+
+        elif message_list[2] != "straight":
+            reply_message.data = "turn on approach"
+            self.mapPublisher.publish(reply_message)
+
+        # by default the direction is straight send that to the robot driver
+        else:
+            reply_message.data = message_list[2]
+            self.mapPublisher.publish(reply_message)
 
 
 DEBUG = False
@@ -110,7 +156,6 @@ DEBUG = False
 def main():
     rclpy.init()
     captain = Captain()
-    # rclpy.spin(captain)
 
     while (DEBUG):
         mapUpdate = String()

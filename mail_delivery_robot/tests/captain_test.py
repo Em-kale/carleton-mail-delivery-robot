@@ -15,28 +15,34 @@ class CaptainNodeTest(Node):
         super().__init__('captain_test')
 
         # Create publisher and subscriber
-        self.publisher = self.create_publisher(String, 'beacons', 2)
+        self.publisher = self.create_publisher(String, 'navigator', 2)
         self.subscriber = self.create_subscription(String, 'navigationMap', self.callback, 10)
 
         self.get_logger().info('Executing tests...')
 
         # Repeat test loop every 5 seconds
         timer_time = 5
-        timer = self.create_timer(timer_time, self.test_throughput)
+        timer = self.create_timer(timer_time, self.test_navigator_throughput)
 
     # This function is called every time a message is received
     def callback(self, message):
 
         # Check if returned values from actionTranslator are as expected
-        if self.test_count == 0:
+        if message.data == "straight":
             # Initial beacon message does not prompt any reply message
             self.get_logger().info("TEST 1 PASSED: Captain Navigation command as expected")
             # Increment test count so next loop runs test 2
             self.test_count += 1
 
-        elif message.data == "return":
+        elif message.data == "Dock":
 
             self.get_logger().info("TEST 2 PASSED: Captain Navigation command as expected")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "turn on approach":
+
+            self.get_logger().info("TEST 3 PASSED: Captain Navigation command as expected")
             # Increment test count so next loop runs test 2
             self.test_count += 1
 
@@ -44,7 +50,7 @@ class CaptainNodeTest(Node):
             self.get_logger().info(
                 f"TEST FAILED - INVALID TWiST VALUES for {self.current_message} {message.linear.x}, {message.angular.z}")
 
-    def test_throughput(self):
+    def test_navigator_throughput(self):
 
         message = String()
 
@@ -52,14 +58,21 @@ class CaptainNodeTest(Node):
         if self.test_count == 0:
             self.get_logger().info(f"Sending Initial Beacon Data")
 
-            message.data = "EE:16:86:9A:C2:A8,-40"
+            message.data = "1 2 straight 4"
             self.publisher.publish(message)
 
         # When test one completed, run test two
         elif self.test_count == 1:
             self.get_logger().info(f"Sending The Beacon Data Again")
 
-            message.data = "EE:16:86:9A:C2:A8,-40"
+            message.data = "Destination"
+            self.publisher.publish(message)
+
+        # When test two is completed, run test three
+        elif self.test_count == 2:
+            self.get_logger().info(f"Sending The Beacon Data Again")
+
+            message.data = "1 2 left 4"
             self.publisher.publish(message)
 
         else:
