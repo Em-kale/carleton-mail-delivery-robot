@@ -51,7 +51,7 @@ class ActionTranslator(Node):
         time_interval = float(magicNumbers['TIMER_PERIOD'])
 
         message = Twist()
-        message.angular.z = max(-1.0, min(1.0 ,angular_speed(float(current_angle), float(current_distance), float(target_distance), time_interval)))
+        message.angular.z = max(-3.5, min(3.5 ,angular_speed(float(current_angle), float(current_distance), float(target_distance), time_interval)))
         message.linear.x = float(magicNumbers['FORWARD_X_SPEED']) 
         
         # Get the parameters
