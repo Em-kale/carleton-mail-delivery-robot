@@ -81,7 +81,7 @@ class ActionTranslator(Node):
 def angular_speed(current_angle, current_distance, distance_difference, time_interval):
     angle_difference = math.atan2(distance_difference, current_distance) - (current_angle * math.pi / 180)
     angular_speed = angle_difference / time_interval
-    return angular_speed
+    return -angular_speed
 
 # Main execution
 def main():
