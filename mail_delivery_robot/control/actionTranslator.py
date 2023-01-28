@@ -51,7 +51,7 @@ class ActionTranslator(Node):
         time_interval = float(magicNumbers['TIMER_PERIOD'])
 
         message = Twist()
-        message.angular.z = angular_speed(current_angle, current_distance, target_distance, time_interval)
+        message.angular.z = min(1.0, max(-1.0 ,angular_speed(float(current_angle), float(current_distance), float(target_distance), time_interval)))
         message.linear.x = float(magicNumbers['FORWARD_X_SPEED']) 
         
         # Get the parameters
@@ -63,6 +63,7 @@ class ActionTranslator(Node):
         else:
             # actionMessage = Twist()  # the mess
             # handle basic movement commands from actions topic
+            self.get_logger().info("CUM.angular: " + str(message.angular.z) + " CUM.linear.x: " + str(message.linear.x))  
             self.drivePublisher.publish(message)
 
 
@@ -77,12 +78,10 @@ class ActionTranslator(Node):
 # Limits:
 # -0.5 <= linear.x <= 0.5 and -4.25 <= angular.z <= 4.25 (4rads = 45deg)
 
-def angular_speed(current_angle, current_distance, target_distance, time_interval):
-    distance_difference = target_distance - current_distance
-    angle_difference = math.atan2(distance_difference, current_distance) - current_angle
+def angular_speed(current_angle, current_distance, distance_difference, time_interval):
+    angle_difference = math.atan2(distance_difference, current_distance) - (current_angle * math.pi / 180)
     angular_speed = angle_difference / time_interval
     return angular_speed
-
 
 # Main execution
 def main():
