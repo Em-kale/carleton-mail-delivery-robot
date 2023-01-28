@@ -142,6 +142,7 @@ def distance(sensor1_distance, sensor2_distance):
 
     distance_from_wall = sensor1_distance * math.sin(angle_between_wall * math.pi / 180)
 
+    #this is returning the distance from the wall in metres and the angular between the wall in degrees
     distance_angle_calc = (abs(distance_from_wall),angle_between_wall)
     return distance_angle_calc
     
