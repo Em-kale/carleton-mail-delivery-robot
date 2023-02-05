@@ -12,6 +12,7 @@ import os
 # ~~~~ DEBUG MODE ~~~~
 DEBUG_MODE = False
 
+
 # ~~~~ Load overrides ~~~~
 def loadNumberOverrides():
     magicNumbers = {}
@@ -33,22 +34,43 @@ class DriverStateMachine:
     def handleNewDistanceEvent(self, data, actionPublisher):
         self.currentState = self.currentState.handleNewDistanceEvent(data, actionPublisher)
 
+    def handleCollisionEvent(self, data, actionPublisher):
+        self.currentState = self.currentState.handleCollisionEvent(data, actionPublisher)
+
+    def handleDockEvent(self, data, actionPublisher):
+        self.currentState = self.currentState.handleDockEvent(data, actionPublisher)
+
+
 class DriverState:
     def handleNewDistanceEvent(self, data, actionPublisher):
+        assert 0, "Must be implemented"
+
+    def handleCollisionEvent(self, data, actionPublisher):
+        assert 0, "Must be implemented"
+
+    def handleDockEvent(self, data, actionPublisher):
         assert 0, "Must be implemented"
 
     def toString(self):
         return ""
 
+
 class FindWall(DriverState):
+
     def handleNewDistanceEvent(self, data, actionPublisher):
-        #found wall so change state
-        #TODO this should check that a wall is actually found before switching state.
+        # found wall so change state
+        # TODO this should check that a wall is actually found before switching state.
         return WallFollowing()
 
+    def handleCollisionEvent(self, data, actionPublisher):
+        return CollisionHandling()
+
+    def handleDockEvent(self, data, actionPublisher):
+        return self
 
     def toString(self):
         return "FindWall"
+
 
 class WallFollowing(DriverState):
 
@@ -58,8 +80,46 @@ class WallFollowing(DriverState):
         actionPublisher.publish(action)
         return self
 
+    def handleCollisionEvent(self, data, actionPublisher):
+        return CollisionHandling()
+
+    def handleDockEvent(self, data, actionPublisher):
+        return Docked()
+
     def toString(self):
         return "WallFollowing"
+
+
+class CollisionHandling(DriverState):
+
+    def handleNewDistanceEvent(self, data, actionPublisher):
+        return self
+
+    def handleCollisionEvent(self, data, actionPublisher):
+        # TODO: Add default collision handling
+        return FindWall()
+
+    def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def toString(self):
+        return "CollisionHandling"
+
+
+class Docked(DriverState):
+
+    def handleNewDistanceEvent(self, data, actionPublisher):
+        return self
+
+    def handleCollisionEvent(self, data, actionPublisher):
+        return self
+
+    def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def toString(self):
+        return "Docked"
+
 
 class RobotDriver(Node):
     def __init__(self):
@@ -72,36 +132,47 @@ class RobotDriver(Node):
         self.actionPublisher = self.create_publisher(String, 'actions', 2)
         self.IRSubscriber = self.create_subscription(String, 'preceptions', self.updateIRSensor, 10)
         self.bumperEventSubscriber = self.create_subscription(String, 'bumpEvent', self.updateBumperState, 10)
+        self.dockEventSubscriber = self.create_subscription(String, 'dockEvent', self.updateDockState, 10)
         # TODO These will be implemented in future commits
         # self.mapSubscriber = self.create_subscription(String, 'navigationMap', self.updateMapState, 10)
         # initialize first state
         self.driverStateMachine = DriverStateMachine(FindWall())
 
-
     # update the robots distance flags based on data recieved from the IR sensors
     def updateIRSensor(self, data):
-        #verify data type
+        # verify data type
         if (data.data != "-1"):
-            #self.distance = data.data.split(",")[0]
-            #self.angle = data.data.split(",")[1]
+            # self.distance = data.data.split(",")[0]
+            # self.angle = data.data.split(",")[1]
 
-            #Make sure to pass it through the decode function first. actionTranslater will have to change in order to be able to handle this new message.
+            # Make sure to pass it through the decode function first. actionTranslater will have to change in order to be able to handle this new message.
             # this is a String in the form 'target_distance:current_distance:current_angle'
             self.driverStateMachine.handleNewDistanceEvent(data, self.actionPublisher)
 
         if (DEBUG_MODE):
             self.get_logger().info("Distance: " + str(self.distance) + "Angle: " + str(self.angle))
-    
+
     def updateBumperState(self, data):
-        self.bumperState = data.data
-        #self.driverStateMachine.next(self.distanceFlags, self.bumperState)
+        # self.driverStateMachine.next(self.distanceFlags, self.bumperState)
+        if(data.data != "unpressed"):
+            self.driverStateMachine.handleCollisionEvent(data, self.actionPublisher)
+
         if (DEBUG_MODE):
-            self.get_logger().debug("Bumper State: " + self.bumperState)
+            self.get_logger().debug("Bumper State: " + data.data)
+
+    def updateDockState(self, data):
+        # 3 Types of data "Docked", "Undocked", "StationFound"
+        if(data.data != "Undocked"):
+            self.driverStateMachine.handleDockEvent(data, self.actionPublisher)
+
+        if (DEBUG_MODE):
+            self.get_logger().debug("Dock State: " + data.data)
 
 def main():
     rclpy.init()
     robot_driver = RobotDriver()
     rclpy.spin(robot_driver)
+
 
 if __name__ == '__main__':
     main()
