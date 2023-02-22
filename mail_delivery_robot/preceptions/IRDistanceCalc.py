@@ -13,7 +13,7 @@ from rclpy.node import Node
 import sys
 import Adafruit_ADS1x15
 
-TIMER_PERIOD = 0.2 #seconds
+TIMER_PERIOD = 0.1 #seconds
 FORWARD_X_SPEED = 0.2 #m/s
 
 class IRSensor(Node):
@@ -38,7 +38,10 @@ class IRSensor(Node):
     def __init__(self):
         super().__init__('ir_sensor')
         self.publisher_ = self.create_publisher(String, 'preceptions' , 10)
-        self.pid_controller = PID(1.4517, 0.0001, 0.0129) #init pid controller
+        #self.pid_controller = PID(1.4517, 0.0001, 0.0129) #init pid controller
+        
+        self.pid_controller = PID(1, 0, 0) #init pid controller
+        
         self.pid_controller.SetPoint = 0.15
         self.pid_controller.setSampleTime(TIMER_PERIOD)
         self.timer = self.create_timer(TIMER_PERIOD, self.sendReading)
@@ -52,7 +55,7 @@ class IRSensor(Node):
         output = self.pid_controller.output
         calc.data = str(output) + ':' + str(feedback) + ':' + str(angle)
 
-        self.get_logger().debug('Publishing: "%s"' % calc)
+        #self.get_logger().debug('Publishing: "%s"' % calc)
         if calc.data == -1:
             pass
         else:
