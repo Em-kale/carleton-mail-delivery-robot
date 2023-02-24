@@ -11,7 +11,7 @@ from std_msgs.msg import String
 import navigation_utilities
 
 
-class PlotNavigation(Node):
+class plot_navigation(Node):
 
     def __init__(self):
         super().__init__('plot_navigation')
@@ -128,7 +128,7 @@ class PlotNavigation(Node):
 
 def main():
     rclpy.init()
-    plot_navigator = PlotNavigation()
+    plot_navigator = plot_navigation()
     rclpy.spin(plot_navigator)
 
 

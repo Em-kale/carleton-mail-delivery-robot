@@ -132,10 +132,8 @@ class Captain(Node):
         """
         self.get_logger().debug('Received: "%s"' % nav_message.data)
 
-        message_list = nav_message.split(" ")
+        message_list = nav_message.data.split(" ")
         reply_message = String()
-
-        self.direction = message_list[2]
 
         # if the robot as arrived at the destination send a docking message
         if len(message_list) == 1 and message_list[0] == "Destination":
@@ -148,11 +146,13 @@ class Captain(Node):
             # TODO determine how that information would be useful to the robot driver
 
         elif message_list[2] != "straight":
+            self.direction = message_list[2]
             reply_message.data = "turn on approach"
             self.mapPublisher.publish(reply_message)
 
         # by default the direction is straight send that to the robot driver
         else:
+            self.direction = message_list[2]
             reply_message.data = message_list[2]
             self.mapPublisher.publish(reply_message)
 
