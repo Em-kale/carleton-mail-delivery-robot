@@ -1,73 +1,120 @@
 #!/usr/bin/env python
 # @author: Favour Olotu
-import unittest
 from std_msgs.msg import String
 from create_msgs.msg import Bumper
-from time import sleep
 import rclpy
+from rclpy.node import Node
 
 
-# Test class for testing the throughput of the bumper sensor node
-class BumperSensorNodeTest(unittest.TestCase):
-    message_properly_processed = True
+# Test class for testing the throughput of the Bumper Sensor node
+# Publishes a bumper message to the Bumper sensor node
+# Subscribes to bumpEvent to verify that the Bumper sensor node processes a bumper message properly
+class BumperSensorNodeTest(Node):
+    test_count = 0
 
-    def read_response(self, data):
-        # checking the content of the message processed
-        if data.data() == "Cpressed":
-            self.message_properly_processed = True
+    def __init__(self):
+        super().__init__('bumper_sensor_test')
 
-    # This function simulates how a bumper event is triggered
-    def simulate_message(self):
+        # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
+        self.subscriber = self.create_subscription(String, 'bumpEvent', self.callback, 10)
+        self.publisher = self.create_publisher(Bumper, 'bumper', 2)
+
+        self.get_logger().info('Executing tests...')
+
+        # Repeat test loop every 5 seconds
+        timer_time = 5
+        timer = self.create_timer(timer_time, self.test_throughput)
+
+    # This function is called every time a message is received
+    def callback(self, message):
+
+        # Check if returned values from actionTranslator are as expected
+        if message.data == "Cpressed":
+
+            self.get_logger().info("TEST 1 PASSED")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "Lpressed":
+
+            self.get_logger().info("TEST 2 PASSED")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "Rpressed":
+
+            self.get_logger().info("TEST 3 PASSED")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "unpressed":
+
+            self.get_logger().info("TEST 4 PASSED")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        else:
+            self.get_logger().info(
+                f"TEST FAILED - INVALID Bumper message for {self.message}")
+
+    def test_throughput(self):
+
         # The exact message received from a bumper topic
         message = Bumper()
-        message.is_left_pressed = True
-        message.is_right_pressed = True
 
-        # message.is_light_left = True
-        # message.is_light_front_left = True
-        # message.is_light_center_left = True
-        # message.is_light_center_right = True
-        # message.is_light_front_right = True
-        # message.is_light_right = True
-        #
-        # message.light_signal_left = 1
-        # message.light_signal_front_left = 0
-        # message.light_signal_center_left = 1
-        # message.light_signal_center_right = 0
-        # message.light_signal_front_right = 1
-        # message.light_signal_right = 0
+        # Run test one - Publishes command to actions topic
+        if self.test_count == 0:
+            self.get_logger().info(f"Sending centre pressed bumper message")
 
-        self.publisher.publish(message)
-        sleep(1)
-        # Will remove when the message details are sorted
-        self.message_properly_processed = True
+            message.is_left_pressed = True
+            message.is_right_pressed = True
 
-    def setUp(self):
-        rclpy.init()
-        self.test_node = rclpy.create_node("test_bumper_sensor")
-        sleep(2)
+            self.publisher.publish(message)
 
-    def tearDown(self):
-        self.test_node.destroy_node()
-        rclpy.shutdown()
+        # When test one completed, run test two
+        elif self.test_count == 1:
+            self.get_logger().info(f"Sending left pressed bumper message")
 
-    # This test ensures all the communication topics are created
-    def test_topic_name(self):
-        topics = self.test_node.get_topic_names_and_types()
-        topic = "bumpEvent"
-        topic2 = "bumper"
-        self.assertIn(topic, str(topics), "The expected topic not created")
-        self.assertIn(topic2, str(topics), "The expected topic2 not created")
+            message.is_left_pressed = True
+            message.is_right_pressed = False
+            self.publisher.publish(message)
 
-    # This test ensures that given a simulated input the right output is returned
-    def test_node_throughput(self):
-        # Create subscriber, msg_type = Bumper, topic = "bumper", callback = self.read_response
-        self.subscriber = self.test_node.create_subscription(String, 'bumpEvent', self.read_response, 10)
-        self.publisher = self.test_node.create_publisher(Bumper, 'bumper', 10)
+        # When test one completed, run test two
+        elif self.test_count == 2:
+            self.get_logger().info(f"Sending right pressed bumper message")
 
-        self.simulate_message()
-        self.assertEqual(True, self.message_properly_processed, "Message not processed properly")
+            message.is_left_pressed = False
+            message.is_right_pressed = True
+            self.publisher.publish(message)
+
+        # When test one completed, run test two
+        elif self.test_count == 3:
+            self.get_logger().info(f"Sending Unpressed bumper message")
+
+            message.is_left_pressed = False
+            message.is_right_pressed = False
+            self.publisher.publish(message)
+
+        else:
+
+            self.get_logger().info("TESTS PASSED SUCCESSFULLY")
+
+            # Exit
+            self.destroy_node()
+
+
+# Initialize node
+def main(args=None):
+    rclpy.init()
+
+    test_node = BumperSensorNodeTest()
+
+    # Run Node on interval specified in the __init__ function, until it is killed
+    rclpy.spin(test_node)
+
+    test_node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
