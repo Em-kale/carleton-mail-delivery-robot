@@ -99,9 +99,13 @@ class Captain(Node):
         self.get_logger().debug('Received: "%s"' % beacon.data)
 
         if beacon.data.split(",")[0] in self.junctions:
-            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()):
+            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) \
+                    and beacon.data.split(",")[1] <= magicNumbers.THRESHOLD_RSSI:
                 self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
                 self.passedBeacon(beacon.data.split(",")[2])
+            elif beacon.data.split(",")[1] >= magicNumbers.THRESHOLD_RSSI:
+                self.get_logger().info('Reached beacon: "%s"' % beacon.data.split(",")[0])
+                self.reachedBeacon(beacon.data.split(",")[2])
         else:
             self.junctions[beacon.data.split(",")[0]] = JunctionSlopeTracker(10)
             self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger())
