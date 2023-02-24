@@ -92,6 +92,9 @@ class Captain(Node):
         # tell robot driver to start moving in the defined direction
         self.mapPublisher.publish(self.direction)
 
+    def reachedBeacon(self, beacon_id):
+        pass
+
     def readBeacon(self, beacon):
         """
         Expected beacon data: "EE:16:86:9A:C2:A8,-40,4"
