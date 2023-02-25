@@ -134,29 +134,30 @@ def determine_next_direction(map_graph: list, beacon_id: str, junction_id: str) 
 
 
 # Example
-mapGraph = load_tunnel_map_graph('../map.csv')
-path = breadth_first_search(mapGraph, "1", "5")
-print("Path going from 1 to 13: " + str(path))
-print("Starting going straight South from 1")
+if __name__ == "__main__":
+    mapGraph = load_tunnel_map_graph('../map.csv')
+    path = breadth_first_search(mapGraph, "1", "5")
+    print("Path going from 1 to 13: " + str(path))
+    print("Starting going straight South from 1")
 
 
 
-count = 0
-print("At beacon " + str(expectedBeacon(mapGraph, path[0], path[1]))
-    + ", junction " + str(beacon_to_junction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]))))
+    count = 0
+    print("At beacon " + str(expectedBeacon(mapGraph, path[0], path[1]))
+        + ", junction " + str(beacon_to_junction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]))))
 
-print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]),
+    print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]),
                                                         path[2])
           + " to junction " + path[2])
 
-print ("----------------------------------------------------------------------------------------------------")
-for junction in path:
-    print("At beacon " + str(expectedBeacon(mapGraph, junction, path[count + 1]))
+    print ("----------------------------------------------------------------------------------------------------")
+    for junction in path:
+        print("At beacon " + str(expectedBeacon(mapGraph, junction, path[count + 1]))
           + ", junction " + str(beacon_to_junction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]))))
-    if (count + 2 == len(path)):
-        print("Arrived at destination!")
-        break
-    print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]),
+        if (count + 2 == len(path)):
+            print("Arrived at destination!")
+            break
+        print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]),
                                                         path[count + 2])
           + " to junction " + path[count + 2])
-    count += 1
+        count += 1
