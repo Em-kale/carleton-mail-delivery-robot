@@ -13,8 +13,8 @@ from rclpy.node import Node
 import sys
 import Adafruit_ADS1x15
 
-TIMER_PERIOD = 0.2 #seconds
-
+TIMER_PERIOD = 0.1 #seconds
+FORWARD_X_SPEED = 0.2 #m/s
 
 class IRSensor(Node):
     """
@@ -38,7 +38,12 @@ class IRSensor(Node):
     def __init__(self):
         super().__init__('ir_sensor')
         self.publisher_ = self.create_publisher(String, 'preceptions' , 10)
-        self.pid_controller = PID() #init pid controller
+        #self.pid_controller = PID(1.4517, 0.0001, 0.0129) #init pid controller
+        
+        self.pid_controller = PID(1, 0, 0) #init pid controller
+        
+        self.pid_controller.SetPoint = 0.15
+        self.pid_controller.setSampleTime(TIMER_PERIOD)
         self.timer = self.create_timer(TIMER_PERIOD, self.sendReading)
 
     def sendReading(self):
@@ -48,10 +53,9 @@ class IRSensor(Node):
         feedback, angle = calculate()
         self.pid_controller.update(feedback)
         output = self.pid_controller.output
-
         calc.data = str(output) + ':' + str(feedback) + ':' + str(angle)
 
-        self.get_logger().debug('Publishing: "%s"' % calc)
+        #self.get_logger().debug('Publishing: "%s"' % calc)
         if calc.data == -1:
             pass
         else:
@@ -87,7 +91,7 @@ def calculate():
         #values[i] = 3.3*adc.read_adc(i, gain=GAIN)/33000
         v[i] = adc.read_adc(i, gain=GAIN)
         #this is the equation for the curve of inputs vs outputs to convert from input to cm
-        values[i] = 5187878*v[i]**(-1.263763)
+        values[i] = (5187878*v[i]**(-1.263763)) / 100
 
     #calculate averages
     avg1 = sum(stack1)/5
@@ -109,7 +113,7 @@ def calculate():
         if values[1] < avg2*1.5 and values[1] > avg2*0.5:
             return distance(values[0], values[1])
     
-    return -1
+    return 0.15, 0
 
 def distance(sensor1_distance, sensor2_distance):
     '''
@@ -141,6 +145,7 @@ def distance(sensor1_distance, sensor2_distance):
 
     distance_from_wall = sensor1_distance * math.sin(angle_between_wall * math.pi / 180)
 
+    #this is returning the distance from the wall in metres and the angular between the wall in degrees
     distance_angle_calc = (abs(distance_from_wall),angle_between_wall)
     return distance_angle_calc
     
