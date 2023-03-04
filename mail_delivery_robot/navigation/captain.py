@@ -21,8 +21,26 @@ def loadNumberOverrides():
             magicNumbers[row[0]] = row[1]
     return magicNumbers
 
+def loadBeaconData():
+    """
+    Loads all beacons into a list from beaconList.csv
+    :return: List
+    """
+    beacons = {}
+    ROOT_DIR = os.getcwd()
+    with open(f'{ROOT_DIR}/src/carleton-mail-delivery-robot/mail_delivery_robot/beaconList.csv') as csvfile:
+        reader = csv.reader(csvfile,delimiter=",")
+        count = 0
+        for row in reader:
+            if count == 0:
+                count += 1
+                continue
+            beacons[row[0]] = row[1] # row[0] = index, row[1] = id
+    return beacons
+
 
 magicNumbers = loadNumberOverrides()
+beaconList = loadBeaconData()
 
 
 def sign(x):
@@ -36,6 +54,7 @@ class JunctionSlopeTracker():
         self.slopeQueue = []
         self.N = N
         self.sum = 0
+        self.slope = 0
 
         self.counter = 0
         self.signalSent = False
@@ -62,16 +81,20 @@ class JunctionSlopeTracker():
             self.counter = 0
             logger.debug("Slope: %s" % self.slopeQueue[-1])
 
+            # Return slope
+            self.slope = self.averageQueue[-1] - self.averageQueue[-3]
+            return sign(self.slope)
+
         # Slope change is confirmed if newest slope is not equal to last two slopes.
         # 3rd slope is popped
-        if len(self.slopeQueue) >= 3:
-            signChange = sign(self.slopeQueue[-1]) != sign(self.slopeQueue[-2]) and \
-                         sign(self.slopeQueue[-1]) != sign(self.slopeQueue.pop(2))
-
-            # Stop repeated signals
-            return signChange
-        else:
-            return False
+        # if len(self.slopeQueue) >= 3:
+        #     signChange = sign(self.slopeQueue[-1]) != sign(self.slopeQueue[-2]) and \
+        #                  sign(self.slopeQueue[-1]) != sign(self.slopeQueue.pop(2))
+        #
+        #     # Stop repeated signals
+        #     return signChange
+        # else:
+        #     return False
 
 
 class Captain(Node):
@@ -81,19 +104,26 @@ class Captain(Node):
         self.junctions = {}
         self.mapPublisher = self.create_publisher(String, 'navigationMap', 10)
         self.local_map_publisher = self.create_publisher(String, 'localMap', 10)
+        # self.direction_publisher = self.create_publisher(String, 'direction', 10)
         self.beaconSubscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
         self.global_map_subscriber = self.create_subscription(String, 'navigator', self.read_navigator_message, 10)
-        self.direction = String()
+        # self.direction = String()
+        # self.beacon_measurements = []
 
     def passedBeacon(self, beacon_id):
         global_map_update = String()
         global_map_update.data = beacon_id + " Passed"
         self.local_map_publisher.publish(global_map_update)
-        # tell robot driver to start moving in the defined direction
-        self.mapPublisher.publish(self.direction)
+        # # tell robot driver to start moving in the defined direction
+        # self.mapPublisher.publish(self.direction)
 
     def reachedBeacon(self, beacon_id):
-        pass
+        global_map_update = String()
+        global_map_update.data = beacon_id + " Reached"
+        self.mapPublisher.publish(self.direction)
+        self.local_map_publisher.publish(global_map_update)
+        # direction = self.navigation(beacon_id, True)
+        # self.direction_publisher.publish(direction)
 
     def readBeacon(self, beacon):
         """
@@ -101,24 +131,38 @@ class Captain(Node):
         """
         self.get_logger().debug('Received: "%s"' % beacon.data)
 
+        # slope_sign = 0
+        #
+        # if beacon.data.split(",")[0] in beaconList:
+        #     self.beacon_measurements.append(beacon.data.split(",")[1])
+        #
+        #     if len(self.beacon_measurements) > 6:
+        #         self.beacon_measurements.pop(0)
+        #
+        #     if len(self.beacon_measurements) == 6:
+        #         first_avg = (self.beacon_measurements[0] + self.beacon_measurements[1] + self.beacon_measurements[2])/3
+        #         second_avg = (self.beacon_measurements[0] + self.beacon_measurements[1] + self.beacon_measurements[2])/3
+        #         # 1 = Approach, -1 = Leave, 0 = Slope of 0
+        #         slope_sign = sign(second_avg - first_avg)
+        #
+        #     if slope_sign == 1 and self.beacon_measurements[-1] >= magicNumbers.THRESHOLD_RSSI:
+        #         self.get_logger().info('Reached beacon: "%s"' % beacon.data.split(",")[0])
+        #         self.reachedBeacon(beacon.data.split(",")[2])
+        #     elif slope_sign == -1 and self.beacon_measurements[-1] <= magicNumbers.THRESHOLD_RSSI:
+        #         self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
+        #         self.passedBeacon(beacon.data.split(",")[2])
         if beacon.data.split(",")[0] in self.junctions:
-            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) \
+            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) == -1\
                     and beacon.data.split(",")[1] <= magicNumbers.THRESHOLD_RSSI:
                 self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
                 self.passedBeacon(beacon.data.split(",")[2])
-            elif beacon.data.split(",")[1] >= magicNumbers.THRESHOLD_RSSI:
+            elif self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) == 1 \
+                    and beacon.data.split(",")[1] >= magicNumbers.THRESHOLD_RSSI:
                 self.get_logger().info('Reached beacon: "%s"' % beacon.data.split(",")[0])
                 self.reachedBeacon(beacon.data.split(",")[2])
         else:
             self.junctions[beacon.data.split(",")[0]] = JunctionSlopeTracker(10)
             self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger())
-
-        """
-        if False:
-            f = open('captainLog.csv', "a")
-            f.write(beacon.data + "\n")
-            f.close()
-        """
 
     def read_navigator_message(self, nav_message):
         """

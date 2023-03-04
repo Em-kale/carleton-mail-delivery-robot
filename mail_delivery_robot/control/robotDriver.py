@@ -40,6 +40,9 @@ class DriverStateMachine:
     def handleDockEvent(self, data, actionPublisher):
         self.currentState = self.currentState.handleDockEvent(data, actionPublisher)
 
+    def handleReachedEvent(self, data, actionPublisher):
+        self.currentState = self.currentState.handleReachedEvent(data, actionPublisher)
+
 
 class DriverState:
     def handleNewDistanceEvent(self, data, actionPublisher):
@@ -49,6 +52,9 @@ class DriverState:
         assert 0, "Must be implemented"
 
     def handleDockEvent(self, data, actionPublisher):
+        assert 0, "Must be implemented"
+
+    def handleReachedEvent(self, data, actionPublisher):
         assert 0, "Must be implemented"
 
     def toString(self):
@@ -66,6 +72,9 @@ class FindWall(DriverState):
         return CollisionHandling()
 
     def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def handleReachedEvent(self, data, actionPublisher):
         return self
 
     def toString(self):
@@ -86,6 +95,12 @@ class WallFollowing(DriverState):
     def handleDockEvent(self, data, actionPublisher):
         return Docked()
 
+    def handleReachedEvent(self, data, actionPublisher):
+        if data.data == 'straight':
+            return IntersectionReachedStraight
+        elif data.data == 'right':
+            return IntersectionReachedRight
+
     def toString(self):
         return "WallFollowing"
 
@@ -100,6 +115,9 @@ class CollisionHandling(DriverState):
         return FindWall()
 
     def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def handleReachedEvent(self, data, actionPublisher):
         return self
 
     def toString(self):
@@ -117,9 +135,47 @@ class Docked(DriverState):
     def handleDockEvent(self, data, actionPublisher):
         return self
 
+    def handleReachedEvent(self, data, actionPublisher):
+        return self
+
     def toString(self):
         return "Docked"
 
+
+class IntersectionReachedStraight(DriverState):
+
+    def handleNewDistanceEvent(self, data, actionPublisher):
+        return self
+
+    def handleCollisionEvent(self, data, actionPublisher):
+        return self
+
+    def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def handleReachedEvent(self, data, actionPublisher):
+        return self
+
+    def toString(self):
+        return "IntersectionReachedStraight"
+
+
+class IntersectionReachedRight(DriverState):
+
+    def handleNewDistanceEvent(self, data, actionPublisher):
+        return self
+
+    def handleCollisionEvent(self, data, actionPublisher):
+        return self
+
+    def handleDockEvent(self, data, actionPublisher):
+        return self
+
+    def handleReachedEvent(self, data, actionPublisher):
+        return self
+
+    def toString(self):
+        return "IntersectionReachedRight"
 
 class RobotDriver(Node):
     def __init__(self):
@@ -134,7 +190,7 @@ class RobotDriver(Node):
         self.bumperEventSubscriber = self.create_subscription(String, 'bumpEvent', self.updateBumperState, 10)
         self.dockEventSubscriber = self.create_subscription(String, 'dockEvent', self.updateDockState, 10)
         # TODO These will be implemented in future commits
-        # self.mapSubscriber = self.create_subscription(String, 'navigationMap', self.updateMapState, 10)
+        self.reachedSubscriber = self.create_subscription(String, 'navigationMap', self.updateReachedState, 10)
         # initialize first state
         self.driverStateMachine = DriverStateMachine(FindWall())
 
@@ -167,6 +223,12 @@ class RobotDriver(Node):
 
         if (DEBUG_MODE):
             self.get_logger().debug("Dock State: " + data.data)
+
+    def updateReachedState(self, data):
+        self.driverStateMachine.handleReachedEvent(data, self.actionPublisher)
+
+        if (DEBUG_MODE):
+            self.get_logger().debug("Reached State: " + data.data)
 
 def main():
     rclpy.init()
