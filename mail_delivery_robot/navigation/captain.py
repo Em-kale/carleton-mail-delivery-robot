@@ -21,26 +21,7 @@ def loadNumberOverrides():
             magicNumbers[row[0]] = row[1]
     return magicNumbers
 
-def loadBeaconData():
-    """
-    Loads all beacons into a list from beaconList.csv
-    :return: List
-    """
-    beacons = {}
-    ROOT_DIR = os.getcwd()
-    with open(f'{ROOT_DIR}/src/carleton-mail-delivery-robot/mail_delivery_robot/beaconList.csv') as csvfile:
-        reader = csv.reader(csvfile,delimiter=",")
-        count = 0
-        for row in reader:
-            if count == 0:
-                count += 1
-                continue
-            beacons[row[0]] = row[1] # row[0] = index, row[1] = id
-    return beacons
-
-
 magicNumbers = loadNumberOverrides()
-beaconList = loadBeaconData()
 
 
 def sign(x):
