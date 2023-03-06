@@ -17,28 +17,62 @@ class plot_navigation(Node):
     def __init__(self):
         super().__init__('plot_navigation')
 
-        self.navigation_publisher = self.create_publisher(String, 'navigator', 10)
+        self.captain_update_publisher = self.create_publisher(String, 'navigator', 10)
         self.request_subscriber = self.create_subscription(String, 'Requests', self.handle_request, 10)
-        self.local_map_subscriber = self.create_subscription(String, 'localMap', self.parse_local_map_data, 10)
+        self.captain_update_subscriber = self.create_subscription(String, 'localMap', self.parse_local_map_data, 10)
 
-        self.map_graph = navigation_utilities.load_tunnel_map_graph('../map.csv')
-        self.current_path = None
-        self.beacon_to_pass = None
+        self.map_graph = navigation_utilities.load_tunnel_map_graph('../development_map.csv')
+        self.navigation_queue = None
+        self.current_junction = None
+        self.destination_junction = None
+
+    def populate_navigation_queue(self, source_id, destination_id):
+        """
+        This method populates every navigation message required to move from one junction to another
+
+        Navigation Message rubric: beaconIDForNextJunction directionAtBeacon
+        Destination is only added if the next junction is the destination
+        Sample message published: "4 Destination" => beacon 4 is the destination
+        Sample message published: "4 Straight" => travel straight through beacon 4
+
+        Note: Messages should be separated by a space
+
+        """
         self.navigation_queue = queue.Queue()
-        self.previous_direction = None
-        self.counter = 0
+        current_path = navigation_utilities.breadth_first_search(self.map_graph, source_id, destination_id)
+        self.get_logger().info("Current travel path: " + str(current_path))
 
-    def add_to_direction_queue(self, direction, beacon_id):
-        """
-        This method unpacks the directions from the navigational map
-        append direction beaconId to the queue
-        """
-        if direction == "left":
-            self.navigation_queue.put("straight " + beacon_id)
-            self.navigation_queue.put("u-turn " + beacon_id)
-            self.navigation_queue.put("right " + beacon_id)
-        else:
-            self.navigation_queue.put(direction + " " + beacon_id)
+        self.navigation_queue.put(
+            "initial " + navigation_utilities.determine_next_direction(self.map_graph,
+                                                                       navigation_utilities.expectedBeacon(self.map_graph,
+                                                                                                           current_path[0],
+                                                                                                           current_path[1]),
+                                                                       current_path[1]))
+
+        count = 0
+
+        for junction in current_path:
+
+            beacon = str(navigation_utilities.determine_next_beacon(self.map_graph, junction, current_path[count + 1]))
+
+            if count + 2 == len(current_path):
+                self.navigation_queue.put(beacon + " destination")
+                break
+
+            direction = navigation_utilities.determine_next_direction(self.map_graph, navigation_utilities.expectedBeacon(self.map_graph, junction, current_path[count + 1]),
+                                                                      current_path[count + 2])
+
+            if direction == "left":
+                self.navigation_queue.put(beacon + " straight")
+                self.navigation_queue.put(beacon + " u-turn")
+                self.navigation_queue.put(beacon + " right")
+            else:
+                self.navigation_queue.put(beacon + " " + direction)
+
+            count += 1
+
+        # initial message
+        self.captain_update_publisher.publish(self.navigation_queue.get())
 
     def handle_request(self, request):
         """
@@ -50,100 +84,49 @@ class plot_navigation(Node):
 
         expected data: "1 12" - start point is junction 1 and destination is junction 12
 
-        Navigation Message rubric: DirectionForGettingToNextJunction beaconIDForNextJunction [?Destination]
-        Destination is only added if the next junction is the destination
-        Sample message published: "Straight 4 Destination" => travel straight through beacon 4 which is the destination
-        Sample message published: "Straight 4" => travel straight through beacon 4
-
-        Note: Messages should be separated by a space
         """
+
         job = request.data.split(" ")
         self.get_logger().info(
             'Received request from server to travel from junction: ' + job[0] + 'to junction: ' + job[1])
 
         # TODO Logic for queuing and queueing request while a current path is being followed
-        # Alternatively it my be worth it to implement on the server side
-        self.current_path = navigation_utilities.breadth_first_search(self.map_graph, job[0], job[1])
-        self.counter = 0
-        self.get_logger().info("Current travel path: " + str(self.current_path))
+        # Alternatively it may be worth it to implement on the server side
 
-        navigation_message = String()
+        self.populate_navigation_queue(job[0], job[1])
 
-        # If the current path only includes two junctions add destination flag to message
-        if len(self.current_path) == 2:
-            navigation_message = navigation_utilities.determine_next_direction(self.map_graph,
-                                                                               navigation_utilities.expectedBeacon(
-                                                                                   self.map_graph, self.current_path[0],
-                                                                                   self.current_path[0])) \
-                                 + " " + navigation_utilities.expectedBeacon(self.map_graph, self.current_path[0],
-                                                                             self.current_path[0]) \
-                                 + " " + "Destination"
-            self.counter += 2
 
-        elif len(self.current_path) == 1:
-            navigation_message = "Destination"
-
-        else:
-            navigation_message = navigation_utilities.determine_next_direction(self.map_graph,
-                                                                               navigation_utilities.expectedBeacon(
-                                                                                   self.map_graph, self.current_path[0],
-                                                                                   self.current_path[0])) \
-                                 + " " + navigation_utilities.expectedBeacon(self.map_graph, self.current_path[0],
-                                                                             self.current_path[0])
-            self.counter += 1
-        # initial message
-        self.navigation_publisher.publish(navigation_message)
-
-    def parse_local_map_data(self, local_map_update):
+    def parse_local_map_data(self, captain_update):
         """
-                This function handles a local map update from the captain node with the information
-                of the source and destination junction of the mail delivery route
+                This function handles a local map update from the captain node
+                It sends the next direction if the beacon ID matches
 
-                expected local map update: "4 Passed" - Beacon ID 4 has been passed by the robot
+                expected local map update: "4 Passed" or "4 Reached"- Beacon ID 4 has been passed by the robot
 
-                Navigation Message rubric: currentJunctionID nextJunctionID DirectionForGettingToNextJunction beaconIDForNextJunction [Destination]
-                Destination is only added if the next junction is the destination
+                Navigation Message rubric: beaconID DirectionInstruction
 
-                Sample message published: "1 2 straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
-                Sample message published: "1 2 straight 4" => travel from junction 1 to 2 straight through beacon 4
-                Sample message published: "Destination" implies the robot just passed the beacon for destination junction (Docking should be initiated)
+                Sample message published: "4 straight" => travel straight through beacon 4
+                Sample message published: "4 Destination" implies that beacon 4 is the destination(Docking should be initiated when reached)
 
                 Note: Messages should be separated by a space
         """
-        map_update = local_map_update.split(" ")
+        map_update = captain_update.split(" ")
+        direction = str(self.navigation_queue.get()).split(" ")
 
-        # Handle a beacon reached update
-        if map_update == "Reached":
-            # do something
+        # Check the beacon matches expected
+        if map_update[0] == direction[0]:
+            self.captain_update_publisher.publish(direction)
+
+        # If the current beacon doesn't match the expected re-calculate the route
+        else:
+            # Determine current junction based on beacon
+            navigation_utilities.beacon_to_junction(self.map_graph, map_update[0])
+
+            # refresh navigation_queue
+            self.populate_navigation_queue(self.current_junction, self.destination_junction)
             return
 
-        # Handle beacon passed messages
-        if len(self.current_path) == self.counter + 1 and map_update[0] == self.beacon_to_pass:
-            navigation_message = "Destination"
-            self.counter += 1
-
-        elif len(self.current_path) == self.counter + 2 and map_update[0] == self.beacon_to_pass:
-            navigation_message = self.current_path[0] + " " + self.current_path[1] + " " + \
-                                 navigation_utilities.determine_next_direction(self.map_graph,
-                                                                               navigation_utilities.expectedBeacon(
-                                                                                   self.map_graph, self.current_path[0],
-                                                                                   self.current_path[0])) \
-                                 + " " + navigation_utilities.expectedBeacon(self.map_graph, self.current_path[0],
-                                                                             self.current_path[0]) \
-                                 + " " + "Destination"
-            self.counter += 1
-
-        elif map_update[0] == self.beacon_to_pass:
-            navigation_message = self.current_path[0] + " " + self.current_path[1] + " " + \
-                                 navigation_utilities.determine_next_direction(self.map_graph,
-                                                                               navigation_utilities.expectedBeacon(
-                                                                                   self.map_graph, self.current_path[0],
-                                                                                   self.current_path[0])) \
-                                 + " " + navigation_utilities.expectedBeacon(self.map_graph, self.current_path[0],
-                                                                             self.current_path[0])
-            self.counter += 1
-
-        self.navigation_publisher.publish(navigation_message)
+        self.captain_update_publisher.publish(self.navigation_queue.get())
 
 
 def main():

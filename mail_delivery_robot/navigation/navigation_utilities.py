@@ -79,7 +79,7 @@ def breadth_first_search(map_graph: list, source_junction: str, destination_junc
             return traceback
 
 
-def beacon_to_junction(map_graph: list, beacon_id: str) -> Union[int, Any]:
+def beacon_to_junction(map_graph: list, beacon_id: str):
     """
     This function iterates through the graph of the map and returns
     the junction id associated with the given beacon id
@@ -88,7 +88,7 @@ def beacon_to_junction(map_graph: list, beacon_id: str) -> Union[int, Any]:
     for junction in map_graph:
         for beacon in junction[1]:
             if beacon[0] == beacon_id:
-                return junction[0]
+                return beacon[1]
     return -1
 
 
@@ -147,7 +147,7 @@ def determine_next_direction(map_graph: list, beacon_id: str, junction_id: str) 
     return turns[source_direction][destination_direction]
 
 
-# Example
+# Example use with the development map
 if __name__ == "__main__":
     mapGraph = load_tunnel_map_graph('../development_map.csv')
     path = breadth_first_search(mapGraph, "1", "5")
@@ -191,4 +191,7 @@ if __name__ == "__main__":
 
     print("\nContents of the direction queue:\n")
     while not direction_queue.empty():
-        print(direction_queue.get())
+        direction = direction_queue.get()
+        print(direction)
+        if "initial" not in direction:
+            print(beacon_to_junction(mapGraph, (direction.split(" "))[0]))

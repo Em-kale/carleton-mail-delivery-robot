@@ -21,6 +21,7 @@ def loadNumberOverrides():
             magicNumbers[row[0]] = row[1]
     return magicNumbers
 
+
 magicNumbers = loadNumberOverrides()
 
 
@@ -83,26 +84,23 @@ class Captain(Node):
     def __init__(self):
         super().__init__('captain')
         self.junctions = {}
-        self.mapPublisher = self.create_publisher(String, 'navigationMap', 10)
-        self.local_map_publisher = self.create_publisher(String, 'localMap', 10)
-        # self.direction_publisher = self.create_publisher(String, 'direction', 10)
-        self.beaconSubscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
-        self.global_map_subscriber = self.create_subscription(String, 'navigator', self.read_navigator_message, 10)
-        # self.direction = String()
-        # self.beacon_measurements = []
+        self.robot_driver_publisher = self.create_publisher(String, 'navigationMap', 10)
+        self.plot_navigation_publisher = self.create_publisher(String, 'localMap', 10)
+        self.beacon_subscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
+        self.plot_navigation_subscriber = self.create_subscription(String, 'navigator', self.read_navigator_message, 10)
 
     def passedBeacon(self, beacon_id):
         global_map_update = String()
         global_map_update.data = beacon_id + " Passed"
-        self.local_map_publisher.publish(global_map_update)
+        self.plot_navigation_publisher.publish(global_map_update)
         # # tell robot driver to start moving in the defined direction
         # self.mapPublisher.publish(self.direction)
 
     def reachedBeacon(self, beacon_id):
         global_map_update = String()
         global_map_update.data = beacon_id + " Reached"
-        self.mapPublisher.publish(self.direction)
-        self.local_map_publisher.publish(global_map_update)
+        self.robot_driver_publisher.publish(self.direction)
+        self.plot_navigation_publisher.publish(global_map_update)
         # direction = self.navigation(beacon_id, True)
         # self.direction_publisher.publish(direction)
 
@@ -133,11 +131,13 @@ class Captain(Node):
         #         self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
         #         self.passedBeacon(beacon.data.split(",")[2])
         if beacon.data.split(",")[0] in self.junctions:
-            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) == -1\
+            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1],
+                                                                      self.get_logger()) == -1 \
                     and beacon.data.split(",")[1] <= magicNumbers.THRESHOLD_RSSI:
                 self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
                 self.passedBeacon(beacon.data.split(",")[2])
-            elif self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()) == 1 \
+            elif self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1],
+                                                                        self.get_logger()) == 1 \
                     and beacon.data.split(",")[1] >= magicNumbers.THRESHOLD_RSSI:
                 self.get_logger().info('Reached beacon: "%s"' % beacon.data.split(",")[0])
                 self.reachedBeacon(beacon.data.split(",")[2])
@@ -164,22 +164,22 @@ class Captain(Node):
         if len(message_list) == 1 and message_list[0] == "Destination":
             # TODO Need to confirm what message should be sent to the robot driver to initiate docking
             reply_message.data = "Dock"
-            self.mapPublisher.publish(reply_message)
+            self.robot_driver_publisher.publish(reply_message)
 
         # if the next junction is the destination send a destination approach message
         # elif len(message_list) == 5 and message_list[4] == "Destination":
-            # TODO determine how that information would be useful to the robot driver
+        # TODO determine how that information would be useful to the robot driver
 
         elif message_list[2] != "straight":
             self.direction = message_list[2]
             reply_message.data = "turn on approach"
-            self.mapPublisher.publish(reply_message)
+            self.robot_driver_publisher.publish(reply_message)
 
         # by default the direction is straight send that to the robot driver
         else:
             self.direction = message_list[2]
             reply_message.data = message_list[2]
-            self.mapPublisher.publish(reply_message)
+            self.robot_driver_publisher.publish(reply_message)
 
 
 DEBUG = False
@@ -192,7 +192,7 @@ def main():
     while (DEBUG):
         mapUpdate = String()
         mapUpdate.data = input("Enter a navigational update: ")
-        captain.mapPublisher.publish(mapUpdate)
+        captain.robot_driver_publisher.publish(mapUpdate)
         captain.get_logger().debug('Publishing: "%s"' % mapUpdate.data)
 
     rclpy.spin(captain)
