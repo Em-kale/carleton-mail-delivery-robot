@@ -21,6 +21,7 @@ setup(
         (os.path.join('share', package_name), ['package.xml']),
         # Include all launch files.
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.launch.py'))),
+
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -41,8 +42,8 @@ setup(
             'captain = navigation.captain:main',
             'bumper_sensor = preceptions.bumperSensor:main',
             'captain_test = tests.captain_test:main',
-            'bumper_sensor_test = tests.bumper_sensor_test:main'
-            'plot_navigation = tests.plot_navigation:main'
+            'bumper_sensor_test = tests.bumper_sensor_test:main',
+            'plot_navigation = navigation.plot_navigation:main',
             'plot_navigation_test = tests.plot_navigation_test:main'
         ],
     },

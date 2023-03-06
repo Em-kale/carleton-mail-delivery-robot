@@ -87,7 +87,7 @@ class PlotNavigationNodeTest(Node):
 
             server_request_message.data = "1 5"
 
-            self.request_publisher(server_request_message)
+            self.request_publisher.publish(server_request_message)
 
         # When test two completed, run test two
         elif self.test_count == 1:
@@ -95,7 +95,7 @@ class PlotNavigationNodeTest(Node):
 
             local_map_message.data = "2 reached"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         # When test three completed, run test two
         elif self.test_count == 2:
@@ -103,35 +103,35 @@ class PlotNavigationNodeTest(Node):
 
             local_map_message.data = "3 reached"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         elif self.test_count == 3:
             self.get_logger().info(f"Sending beacon 4 reached message")
 
             local_map_message.data = "4 reached"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         elif self.test_count == 4:
             self.get_logger().info(f"Sending beacon 4 passed message")
 
             local_map_message.data = "4 Passed"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         elif self.test_count == 5:
             self.get_logger().info(f"Sending beacon 4 reached message again")
 
             local_map_message.data = "4 reached"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         elif self.test_count == 6:
             self.get_logger().info(f"Sending beacon 5 reached message")
 
             local_map_message.data = "5 reached"
 
-            self.captain_update_publisher(local_map_message)
+            self.captain_update_publisher.publish(local_map_message)
 
         else:
 
