@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # @author: Favour Olotu
+import queue
 
 # SUBSCRIBER:   localMap
 # SUBSCRIBER:   Requests
@@ -23,8 +24,21 @@ class plot_navigation(Node):
         self.map_graph = navigation_utilities.load_tunnel_map_graph('../map.csv')
         self.current_path = None
         self.beacon_to_pass = None
-
+        self.navigation_queue = queue.Queue()
+        self.previous_direction = None
         self.counter = 0
+
+    def add_to_direction_queue(self, direction, beacon_id):
+        """
+        This method unpacks the directions from the navigational map
+        append direction beaconId to the queue
+        """
+        if direction == "left":
+            self.navigation_queue.put("straight " + beacon_id)
+            self.navigation_queue.put("u-turn " + beacon_id)
+            self.navigation_queue.put("right " + beacon_id)
+        else:
+            self.navigation_queue.put(direction + " " + beacon_id)
 
     def handle_request(self, request):
         """
@@ -36,15 +50,16 @@ class plot_navigation(Node):
 
         expected data: "1 12" - start point is junction 1 and destination is junction 12
 
-        Navigation Message rubric: currentJunctionID nextJunctionID DirectionForGettingToNextJunction beaconIDForNextJunction [Destination]
+        Navigation Message rubric: DirectionForGettingToNextJunction beaconIDForNextJunction [?Destination]
         Destination is only added if the next junction is the destination
-        Sample message published: "1 2 Straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
-        Sample message published: "1 2 Straight 4" => travel from junction 1 to 2 straight through beacon 4
+        Sample message published: "Straight 4 Destination" => travel straight through beacon 4 which is the destination
+        Sample message published: "Straight 4" => travel straight through beacon 4
 
         Note: Messages should be separated by a space
         """
         job = request.data.split(" ")
-        self.get_logger().info('Received request from server to travel from junction: ' + job[0] + 'to junction: ' + job[1])
+        self.get_logger().info(
+            'Received request from server to travel from junction: ' + job[0] + 'to junction: ' + job[1])
 
         # TODO Logic for queuing and queueing request while a current path is being followed
         # Alternatively it my be worth it to implement on the server side
@@ -56,8 +71,7 @@ class plot_navigation(Node):
 
         # If the current path only includes two junctions add destination flag to message
         if len(self.current_path) == 2:
-            navigation_message = self.current_path[0] + " " + self.current_path[1] + " " + \
-                                 navigation_utilities.determine_next_direction(self.map_graph,
+            navigation_message = navigation_utilities.determine_next_direction(self.map_graph,
                                                                                navigation_utilities.expectedBeacon(
                                                                                    self.map_graph, self.current_path[0],
                                                                                    self.current_path[0])) \
@@ -70,15 +84,14 @@ class plot_navigation(Node):
             navigation_message = "Destination"
 
         else:
-            navigation_message = self.current_path[0] + " " + self.current_path[1] + " " + \
-                                 navigation_utilities.determine_next_direction(self.map_graph,
+            navigation_message = navigation_utilities.determine_next_direction(self.map_graph,
                                                                                navigation_utilities.expectedBeacon(
                                                                                    self.map_graph, self.current_path[0],
                                                                                    self.current_path[0])) \
                                  + " " + navigation_utilities.expectedBeacon(self.map_graph, self.current_path[0],
                                                                              self.current_path[0])
             self.counter += 1
-
+        # initial message
         self.navigation_publisher.publish(navigation_message)
 
     def parse_local_map_data(self, local_map_update):
@@ -98,6 +111,13 @@ class plot_navigation(Node):
                 Note: Messages should be separated by a space
         """
         map_update = local_map_update.split(" ")
+
+        # Handle a beacon reached update
+        if map_update == "Reached":
+            # do something
+            return
+
+        # Handle beacon passed messages
         if len(self.current_path) == self.counter + 1 and map_update[0] == self.beacon_to_pass:
             navigation_message = "Destination"
             self.counter += 1

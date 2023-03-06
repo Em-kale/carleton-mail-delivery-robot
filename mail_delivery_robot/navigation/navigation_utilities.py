@@ -2,6 +2,7 @@
 # @author: Favour Olotu
 
 import csv
+import queue
 from typing import Union, Any
 
 
@@ -63,7 +64,7 @@ def breadth_first_search(map_graph: list, source_junction: str, destination_junc
                 found = True
                 break
             num = junction_id_to_vertex_number(map_graph, i[1])
-            if (num != -1 and visited[num] == False):
+            if num != -1 and visited[num] == False:
                 queue.append(num)
                 visited[num] = True
 
@@ -104,6 +105,19 @@ def expectedBeacon(map_graph: list, source_junction: str, destination_junction: 
     return -1
 
 
+def determine_next_beacon(map_graph: list, source_junction: str, destination_junction: str):
+    """
+    For a pair of source and destination junction in the map graph
+    this function returns the next beacon to be encountered
+    """
+    for junction in map_graph:
+        if junction[0] == source_junction:
+            for beacon in junction[1]:
+                if beacon[1] == destination_junction:
+                    return beacon[0]
+    return -1
+
+
 def determine_next_direction(map_graph: list, beacon_id: str, junction_id: str) -> str:
     """
     This function determines the desired direction to take based on the placement of the
@@ -135,29 +149,46 @@ def determine_next_direction(map_graph: list, beacon_id: str, junction_id: str) 
 
 # Example
 if __name__ == "__main__":
-    mapGraph = load_tunnel_map_graph('../map.csv')
+    mapGraph = load_tunnel_map_graph('../development_map.csv')
     path = breadth_first_search(mapGraph, "1", "5")
-    print("Path going from 1 to 13: " + str(path))
-    print("Starting going straight South from 1")
+    print("Path going from junction 1 to 5: " + str(path))
 
+    direction_queue = queue.Queue()
+    direction_queue.put(
+        "initial " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]), path[1]))
 
+    print(
+        "Initial direction: " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]), path[1]))
 
     count = 0
-    print("At beacon " + str(expectedBeacon(mapGraph, path[0], path[1]))
-        + ", junction " + str(beacon_to_junction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]))))
 
-    print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, path[0], path[1]),
-                                                        path[2])
-          + " to junction " + path[2])
-
-    print ("----------------------------------------------------------------------------------------------------")
+    print("----------------------------------------------------------------------------------------------------")
     for junction in path:
-        print("At beacon " + str(expectedBeacon(mapGraph, junction, path[count + 1]))
-          + ", junction " + str(beacon_to_junction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]))))
-        if (count + 2 == len(path)):
+
+        beacon = str(determine_next_beacon(mapGraph, junction, path[count + 1]))
+
+        print("At beacon " + beacon)
+
+        if count + 2 == len(path):
             print("Arrived at destination!")
+            direction_queue.put(beacon + " destination")
             break
-        print("\t\t    ------> " + determine_next_direction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]),
-                                                        path[count + 2])
-          + " to junction " + path[count + 2])
+
+        direction = determine_next_direction(mapGraph, expectedBeacon(mapGraph, junction, path[count + 1]),
+                                             path[count + 2])
+
+        if direction == "left":
+            direction_queue.put(beacon + " straight")
+            direction_queue.put(beacon + " u-turn")
+            direction_queue.put(beacon + " right")
+        else:
+            direction_queue.put(beacon + " " + direction)
+
+        print(
+            "\t\t    ------> " + direction)
         count += 1
+        print("----------------------------------------------------------------------------------------------------")
+
+    print("\nContents of the direction queue:\n")
+    while not direction_queue.empty():
+        print(direction_queue.get())

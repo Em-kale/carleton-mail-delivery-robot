@@ -60,7 +60,7 @@ class PlotNavigationNodeTest(Node):
         if self.test_count == 0:
             self.get_logger().info(f"Sending server request message")
 
-            server_request_message.data = "1 3"
+            server_request_message.data = "5 9"
 
             self.request_publisher(server_request_message)
 
@@ -68,7 +68,7 @@ class PlotNavigationNodeTest(Node):
         elif self.test_count == 1:
             self.get_logger().info(f"Sending beacon 4 passed message")
 
-            local_map_message.data = "4 Passed"
+            local_map_message.data = "12 Passed"
 
             self.local_map_publisher(local_map_message)
 
@@ -76,7 +76,21 @@ class PlotNavigationNodeTest(Node):
         elif self.test_count == 2:
             self.get_logger().info(f"Sending beacon 7 passed message")
 
-            local_map_message.data = "7 Passed"
+            local_map_message.data = "15 Passed"
+
+            self.local_map_publisher(local_map_message)
+
+        elif self.test_count == 3:
+            self.get_logger().info(f"Sending beacon 7 passed message")
+
+            local_map_message.data = "15 Reached"
+
+            self.local_map_publisher(local_map_message)
+
+        elif self.test_count == 4:
+            self.get_logger().info(f"Sending beacon 7 passed message")
+
+            local_map_message.data = "17 Passed"
 
             self.local_map_publisher(local_map_message)
 
