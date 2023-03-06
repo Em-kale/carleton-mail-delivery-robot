@@ -13,7 +13,7 @@ from rclpy.node import Node
 import sys
 import Adafruit_ADS1x15
 
-TIMER_PERIOD = 0.1 #seconds
+TIMER_PERIOD = 0.07 #seconds
 FORWARD_X_SPEED = 0.2 #m/s
 
 class IRSensor(Node):
@@ -40,7 +40,7 @@ class IRSensor(Node):
         self.publisher_ = self.create_publisher(String, 'preceptions' , 10)
         #self.pid_controller = PID(1.4517, 0.0001, 0.0129) #init pid controller
         
-        self.pid_controller = PID(1, 0, 0) #init pid controller
+        self.pid_controller = PID(1.1, 0, 0) #init pid controller
         
         self.pid_controller.SetPoint = 0.15
         self.pid_controller.setSampleTime(TIMER_PERIOD)
@@ -53,7 +53,7 @@ class IRSensor(Node):
         feedback, angle = calculate()
         self.pid_controller.update(feedback)
         output = self.pid_controller.output
-        calc.data = str(output) + ':' + str(feedback) + ':' + str(angle)
+        calc.data = str(output) + ':' + str(feedback) + ':' + str(angle) 
 
         #self.get_logger().debug('Publishing: "%s"' % calc)
         if calc.data == -1:
@@ -65,8 +65,8 @@ class IRSensor(Node):
 
 # Create an ADS1115 ADC (16-bit) instance.
 adc = Adafruit_ADS1x15.ADS1115()
-stack1 = [0, 0, 0, 0, 0]
-stack2 = [0, 0, 0, 0, 0]
+stack1 = []  
+stack2 = [] 
 avg1 = 0
 avg2 = 0
 # See table 3 in the ADS1015/ADS1115 datasheet for more info on gain.
@@ -92,28 +92,35 @@ def calculate():
         v[i] = adc.read_adc(i, gain=GAIN)
         #this is the equation for the curve of inputs vs outputs to convert from input to cm
         values[i] = (5187878*v[i]**(-1.263763)) / 100
+        time.sleep(0.03)
 
-    #calculate averages
-    avg1 = sum(stack1)/5
-    avg2 = sum(stack2)/5
-    
     #insert new values, pop oldest values.
-    stack1.insert(0, values[0])
-    stack1.pop(5)
-    stack2.insert(0, values[1])
-    stack2.pop(5)
+    if(len(stack1) < 10 and len(stack2) < 10):
+        stack1.insert(0, values[0])
+        stack2.insert(0, values[0]) 
+    else: 
+        avg1 = sum(stack1)/len(stack1)
+        avg2 = sum(stack2)/len(stack2)
+        
+        if values[0] < avg1*1.5 and values[0] > avg1*0.5:
+            if values[1] < avg2*1.5 and values[1] > avg2*0.5:
+                stack1.insert(0, values[0])
+                stack2.insert(0, values[0]) 
+
+                stack1.pop(len(stack1) - 1)
+                stack2.pop(len(stack2) - 1)
+
+                return distance(values[0], values[1]) 
+    
     
     #prints values and averages for testing
-    print("Sensor1: " + str(values[0]) + "    avg: " + str(avg1))
-    print("Sensor2: " + str(values[1]) + "    avg: " + str(avg2))
+    #print("Sensor1: " + str(values[0]) + "    avg: " + str(avg1))
+    #print("Sensor2: " + str(values[1]) + "    avg: " + str(avg2))
     
     #check if the values are in the range and valid
     #TODO previous groups have mentioned that this could use tuning
-    if values[0] < avg1*1.5 and values[0] > avg1*0.5:
-        if values[1] < avg2*1.5 and values[1] > avg2*0.5:
-            return distance(values[0], values[1])
     
-    return 0.15, 0
+    return distance(stack1[0], stack2[0]) 
 
 def distance(sensor1_distance, sensor2_distance):
     '''
