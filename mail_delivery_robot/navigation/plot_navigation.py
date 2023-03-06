@@ -165,6 +165,7 @@ class plot_navigation(Node):
         self.navigation_queue = None
         self.current_junction = None
         self.destination_junction = None
+        self.left_turn_beacons = []
 
     def populate_navigation_queue(self, source_id, destination_id):
         """
@@ -211,6 +212,7 @@ class plot_navigation(Node):
                 self.navigation_queue.put(beacon + " straight")
                 self.navigation_queue.put(beacon + " u-turn")
                 self.navigation_queue.put(beacon + " right")
+                self.left_turn_beacons.append(beacon)
             else:
                 self.navigation_queue.put(beacon + " " + direction)
 
@@ -260,22 +262,30 @@ class plot_navigation(Node):
         current_navigation = str(self.navigation_queue.get())
         direction = current_navigation.split(" ")
 
-        # Check the beacon matches expected
-        if map_update[0] == direction[0]:
+        # Check the beacon matches expected base case
+        if map_update[0] == direction[0] and map_update[1] == 'reached':
             message = String()
             message.data = current_navigation
             self.captain_update_publisher.publish(message)
 
+
+        elif map_update[1] == 'passed' and map_update[0] in self.left_turn_beacons:
+            self.left_turn_beacons.remove(map_update[0])
+            message = String()
+            message.data = current_navigation
+            self.captain_update_publisher.publish(message)
+
+        # TODO logic for re-routing if the robot is off track
         # If the current beacon doesn't match the expected re-calculate the route
-        else:
+        # elif map_update[0] != direction[0]:
             # Determine current junction based on beacon
-            self.navigation_utilities.navigation_utilities.beacon_to_junction(self.map_graph, map_update[0])
+            # self.current_junction = self.navigation_utilities.beacon_to_junction(self.map_graph, map_update[0])
 
             # refresh navigation_queue
-            self.populate_navigation_queue(self.current_junction, self.destination_junction)
-            return
+            # self.populate_navigation_queue(self.current_junction, self.destination_junction)
 
-        # self.captain_update_publisher.publish(self.navigation_queue.get())
+        else:
+            return
 
 
 def main():

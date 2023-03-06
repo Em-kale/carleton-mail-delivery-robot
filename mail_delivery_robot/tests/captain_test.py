@@ -34,15 +34,21 @@ class CaptainNodeTest(Node):
             # Increment test count so next loop runs test 2
             self.test_count += 1
 
-        elif message.data == "Dock":
+        elif message.data == "right":
 
             self.get_logger().info("TEST 2 PASSED: Captain Navigation command as expected")
             # Increment test count so next loop runs test 2
             self.test_count += 1
 
-        elif message.data == "turn on approach":
+        elif message.data == "u-turn":
 
             self.get_logger().info("TEST 3 PASSED: Captain Navigation command as expected")
+            # Increment test count so next loop runs test 2
+            self.test_count += 1
+
+        elif message.data == "dock":
+
+            self.get_logger().info("TEST 4 PASSED: Captain Navigation command as expected")
             # Increment test count so next loop runs test 2
             self.test_count += 1
 
@@ -56,23 +62,30 @@ class CaptainNodeTest(Node):
 
         # Run test one - Publishes command to actions topic
         if self.test_count == 0:
-            self.get_logger().info(f"Sending Initial Beacon Data")
+            self.get_logger().info(f"Sending -2 straight- navigation message")
 
-            message.data = "1 2 straight 4"
+            message.data = "2 straight"
             self.publisher.publish(message)
 
         # When test one completed, run test two
         elif self.test_count == 1:
-            self.get_logger().info(f"Sending The Beacon Data Again")
+            self.get_logger().info(f"Sending -2 right- navigation message")
 
-            message.data = "Destination"
+            message.data = "2 right"
             self.publisher.publish(message)
 
         # When test two is completed, run test three
         elif self.test_count == 2:
-            self.get_logger().info(f"Sending The Beacon Data Again")
+            self.get_logger().info(f"Sending -2 u-turn- navigation message")
 
-            message.data = "1 2 left 4"
+            message.data = "2 u-turn"
+            self.publisher.publish(message)
+
+        # When test two is completed, run test three
+        elif self.test_count == 3:
+            self.get_logger().info(f"Sending -2 destination- navigation message")
+
+            message.data = "2 destination"
             self.publisher.publish(message)
 
         else:

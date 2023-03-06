@@ -91,18 +91,13 @@ class Captain(Node):
 
     def passedBeacon(self, beacon_id):
         global_map_update = String()
-        global_map_update.data = beacon_id + " Passed"
+        global_map_update.data = beacon_id + " passed"
         self.plot_navigation_publisher.publish(global_map_update)
-        # # tell robot driver to start moving in the defined direction
-        # self.mapPublisher.publish(self.direction)
 
     def reachedBeacon(self, beacon_id):
         global_map_update = String()
-        global_map_update.data = beacon_id + " Reached"
-        self.robot_driver_publisher.publish(self.direction)
+        global_map_update.data = beacon_id + " reached"
         self.plot_navigation_publisher.publish(global_map_update)
-        # direction = self.navigation(beacon_id, True)
-        # self.direction_publisher.publish(direction)
 
     def readBeacon(self, beacon):
         """
@@ -150,10 +145,10 @@ class Captain(Node):
         This function parses the message from the navigator and uses it to
         send the directional message to the robot driver node
 
-        expected nav_message: "1 2 straight 4 Destination" => travel from junction 1 to 2 straight through beacon 4 Destination junction ID = 2
-        expected nav_message: "1 2 straight 4" => travel from junction 1 to 2 straight through beacon 4
-        expected nav_message: "Destination" implies the robot just passed the beacon for destination junction (Docking should be initiated)
+        expected nav_message: "4 Destination" => beacon 4 is the Destination (Initiate docking)
+        expected nav_message: "4 straight" => travel straight through beacon 4
 
+        expected directional message: "straight", "right", "u-turn", "dock"
         """
         self.get_logger().debug('Received: "%s"' % nav_message.data)
 
@@ -161,24 +156,13 @@ class Captain(Node):
         reply_message = String()
 
         # if the robot as arrived at the destination send a docking message
-        if len(message_list) == 1 and message_list[0] == "Destination":
-            # TODO Need to confirm what message should be sent to the robot driver to initiate docking
-            reply_message.data = "Dock"
-            self.robot_driver_publisher.publish(reply_message)
-
-        # if the next junction is the destination send a destination approach message
-        # elif len(message_list) == 5 and message_list[4] == "Destination":
-        # TODO determine how that information would be useful to the robot driver
-
-        elif message_list[2] != "straight":
-            self.direction = message_list[2]
-            reply_message.data = "turn on approach"
+        if message_list[1] == "destination":
+            reply_message.data = "dock"
             self.robot_driver_publisher.publish(reply_message)
 
         # by default the direction is straight send that to the robot driver
         else:
-            self.direction = message_list[2]
-            reply_message.data = message_list[2]
+            reply_message.data = message_list[1]
             self.robot_driver_publisher.publish(reply_message)
 
 

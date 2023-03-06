@@ -115,7 +115,7 @@ class PlotNavigationNodeTest(Node):
         elif self.test_count == 4:
             self.get_logger().info(f"Sending beacon 4 passed message")
 
-            local_map_message.data = "4 Passed"
+            local_map_message.data = "4 passed"
 
             self.captain_update_publisher.publish(local_map_message)
 
