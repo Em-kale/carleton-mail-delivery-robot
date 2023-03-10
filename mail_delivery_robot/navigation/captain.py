@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-# @author: Stephen Wicklund, Jacob Charpentier
+# @author: Stephen Wicklund, Jacob Charpentier, Favour Olotu
 # SUBSCRIBER:   beacons
+# SUBSCRIBER:   navigator
 # PUBLISHER:    navigationMap
+# PUBLISHER:    localMap
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -17,8 +19,13 @@ def loadNumberOverrides():
         reader = csv.reader(csvfile, delimiter=",")
         for row in reader:
             magicNumbers[row[0]] = row[1]
-    return magicNumbers
+        
+        for item in magicNumbers.items(): 
+            print(item)
 
+    return magicNumbers
+    
+    
 
 magicNumbers = loadNumberOverrides()
 
@@ -34,74 +41,119 @@ class JunctionSlopeTracker():
         self.slopeQueue = []
         self.N = N
         self.sum = 0
+        self.slope = 0
 
         self.counter = 0
         self.signalSent = False
 
-    def addDataPoint(self, dataPoint, logger):
+    def addDataPoint(self, dataPoint):
         if (len(self.averageQueue) != 0 and abs(int(dataPoint) - int(self.averageQueue[-1])) > int(
                 magicNumbers['BEACON_OUTLIER_THRESHOLD'])):
             return False
 
         # Remove data point exceeding window size N
         if len(self.dataQueue) >= self.N:
-            self.sum -= int(self.dataQueue.pop(0))
+            self.dataQueue.pop(0)
 
         # Add new data point and update sum and average queue
-        self.dataQueue.append(dataPoint)
-        self.sum += int(dataPoint)
-        self.averageQueue.append(self.sum / len(self.dataQueue))
+        self.dataQueue.append(int(dataPoint))
+        summation = sum(self.dataQueue) 
+        self.averageQueue.append(summation / len(self.dataQueue))
+        
         self.counter += 1
-        logger.debug("Average: %s" % self.averageQueue[-1])
+        
         # slope assume equal distance between points i.e divded by 1
         # Let 5 points accumulate, then take simple slope.
         if len(self.averageQueue) >= 3 and self.counter == 3:
             self.slopeQueue.append(self.averageQueue[-1] - self.averageQueue[-3])
             self.counter = 0
-            logger.debug("Slope: %s" % self.slopeQueue[-1])
+
+            self.slope = self.averageQueue[-1] - self.averageQueue[-3]
+        
+        return sign(self.slope)
 
         # Slope change is confirmed if newest slope is not equal to last two slopes.
         # 3rd slope is popped
-        if len(self.slopeQueue) >= 3:
-            signChange = sign(self.slopeQueue[-1]) != sign(self.slopeQueue[-2]) and \
-                         sign(self.slopeQueue[-1]) != sign(self.slopeQueue.pop(2))
-
-            # Stop repeated signals
-            return signChange
-        else:
-            return False
+        # if len(self.slopeQueue) >= 3:
+        #     signChange = sign(self.slopeQueue[-1]) != sign(self.slopeQueue[-2]) and \
+        #                  sign(self.slopeQueue[-1]) != sign(self.slopeQueue.pop(2))
+        #
+        #     # Stop repeated signals
+        #     return signChange
+        # else:
+        #     return False
 
 
 class Captain(Node):
 
     def __init__(self):
         super().__init__('captain')
+        self.beacon_subscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
+        self.robot_driver_publisher = self.create_publisher(String, 'navigationMap', 10)
         self.junctions = {}
-        self.mapPublisher = self.create_publisher(String, 'navigationMap', 10)
-        self.beaconSubscriber = self.create_subscription(String, 'beacons', self.readBeacon, 10)
 
-    def passedBeacon(self, junction):
-        # TODO: Determine how to turn at junction.
-        mapUpdate = String()
-        mapUpdate.data = "return"
-        self.mapPublisher.publish(mapUpdate)
+    def passedBeacon(self, beacon_id):
+        #determine which type of passed
+        pass 
+
+    def reachedBeacon(self, beacon_id):
+        data = String()
+        
+        destination = 'MC' 
+        direction = 'left' 
+
+        if(beacon_id == 2 and destination == 'MC'):
+            direction = 'left'
+        elif(beacon_id == 2 and destination == 'ME'):
+            direction = 'right'
+        elif(beacon_id == 2 and destination == 'LA'):
+            direction = 'straight'
+        
+        data.data = direction
+
+
+        self.robot_driver_publisher.publish(data) 
 
     def readBeacon(self, beacon):
-        self.get_logger().debug('Received: "%s"' % beacon.data)
-
-        if beacon.data.split(",")[0] in self.junctions:
-            if self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger()):
-                self.get_logger().info('Passed beacon: "%s"' % beacon.data.split(",")[0])
-                self.passedBeacon(beacon.data.split(",")[0])
+        """
+        Expected beacon data: "EE:16:86:9A:C2:A8,-40,4"
+        """
+        self.get_logger().info('Received Beacon At Captain: "%s"' % beacon.data)
+        #returns tuple (id, RSSI)
+        beacon_id, beacon_rssi = beacon.data.split(",")
+        threshold = magicNumbers['THRESHOLD_RSSI']
+        
+        if beacon_id in self.junctions:
+            if self.junctions[beacon_id].addDataPoint(beacon_rssi) and beacon_rssi <= threshold:
+                self.passedBeacon(beacon_id)
+            elif self.junctions[beacon_id].addDataPoint(beacon_rssi) and beacon_rssi >= threshold:
+                self.reachedBeacon(beacon_id)
         else:
-            self.junctions[beacon.data.split(",")[0]] = JunctionSlopeTracker(10)
-            self.junctions[beacon.data.split(",")[0]].addDataPoint(beacon.data.split(",")[1], self.get_logger())
+            self.junctions[beacon_id] = JunctionSlopeTracker(10)
+            self.junctions[beacon_id].addDataPoint(beacon_rssi)
 
-        # TODO: Determine if this code can be removed or if it should be reachable
-        if False:
-            f = open('captainLog.csv', "a")
-            f.write(beacon.data + "\n")
-            f.close()
+    def read_navigator_message(self, nav_message):
+        """
+        This function parses the message from the navigator and uses it to
+        send the directional message to the robot driver node
+        expected nav_message: "4 Destination" => beacon 4 is the Destination (Initiate docking)
+        expected nav_message: "4 straight" => travel straight through beacon 4
+        expected directional message: "straight", "right", "u-turn", "dock"
+        """
+        self.get_logger().debug('Received: "%s"' % nav_message.data)
+
+        message_list = nav_message.data.split(" ")
+        reply_message = String()
+
+        # if the robot as arrived at the destination send a docking message
+        if message_list[1] == "destination":
+            reply_message.data = "dock"
+            self.robot_driver_publisher.publish(reply_message)
+
+        # by default the direction is straight send that to the robot driver
+        else:
+            reply_message.data = message_list[1]
+            self.robot_driver_publisher.publish(reply_message)
 
 
 DEBUG = False
@@ -110,12 +162,11 @@ DEBUG = False
 def main():
     rclpy.init()
     captain = Captain()
-    # rclpy.spin(captain)
 
     while (DEBUG):
         mapUpdate = String()
         mapUpdate.data = input("Enter a navigational update: ")
-        captain.mapPublisher.publish(mapUpdate)
+        captain.robot_driver_publisher.publish(mapUpdate)
         captain.get_logger().debug('Publishing: "%s"' % mapUpdate.data)
 
     rclpy.spin(captain)

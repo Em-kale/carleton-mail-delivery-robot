@@ -44,31 +44,40 @@ class ActionTranslator(Node):
     # Decode and execute the action
     def decodeAction(self, data):
         action = str(data.data)
-        emptyMessage = Empty
+    
 
-        target_distance, current_distance, current_angle = action.split(":")
-        time_interval = float(magicNumbers['TIMER_PERIOD'])
+        data_list = action.split(":")
+        self.get_logger().info(str(data_list)) 
+        message = Twist() 
+        if len(data_list) == 1:
+            #this is for single paranmeter commandsi
+            pass        
+        elif len(data_list) == 2:
+            #this is for just linear and angular messagei
 
-        self.get_logger().info('distance: ' + current_distance)
-        self.get_logger().info('angle: ' + current_angle)
-        self.get_logger().info('target distance: ' + target_distance)
+            message.angular.z = float(data_list[1]) 
+            message.linear.x = float(data_list[0]) 
 
-        message = Twist()
-        message.angular.z = float(target_distance) * 2
-        message.linear.x = float(magicNumbers['FORWARD_X_SPEED']) 
-        
-        # Get the parameters
-        #(drivePublisher, dockPublisher, undockPublisher) = args
-        if action == "dock":
-            self.dockPublisher.publish(emptyMessage)
-        elif action == "undock":
-            self.undockPublisher.publish(emptyMessage)
-        else:
+            self.get_logger().info(data.data)
+        elif len(data_list) == 3:
+            #this is for target distance, cur distance, cur angle, 
+            target_distance, current_distance, current_angle = data_list
+            time_interval = float(magicNumbers['TIMER_PERIOD'])
+
+            self.get_logger().info('distance: ' + current_distance)
+            self.get_logger().info('angle: ' + current_angle)
+            self.get_logger().info('target distance: ' + target_distance)
+
+            message.angular.z = float(target_distance) * 2
+            message.linear.x = float(magicNumbers['FORWARD_X_SPEED']) 
+
             # actionMessage = Twist()  # the mess
             # handle basic movement commands from actions topic
-            self.get_logger().info("angular.z: " + str(message.angular.z) + " ||| linear.x: " + str(message.linear.x))  
-            self.drivePublisher.publish(message)
-
+            self.get_logger().info("angular.z: " + str(message.angular.z) + " ||| linear.x: " + str(message.linear.x))
+        else:
+            #this is an unexpected message
+            pass
+        self.drivePublisher.publish(message)
 
 # Get a Twist message which consists of a linear and angular component which can be negative or positive.
 #

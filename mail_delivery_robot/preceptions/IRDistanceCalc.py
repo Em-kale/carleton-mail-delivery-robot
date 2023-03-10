@@ -51,16 +51,14 @@ class IRSensor(Node):
         
         #update pid controller and get output
         feedback, angle = calculate()
-        self.pid_controller.update(feedback)
-        output = self.pid_controller.output
-        calc.data = str(output) + ':' + str(feedback) + ':' + str(angle) 
+        if feedback == -1 and angle == -1: 
+            calc.data = "-1"
+        else: 
+            self.pid_controller.update(feedback)
+            output = self.pid_controller.output
+            calc.data = str(output) + ':' + str(feedback) + ':' + str(angle) 
 
-        #self.get_logger().debug('Publishing: "%s"' % calc)
-        if calc.data == -1:
-            pass
-        else:
-            self.publisher_.publish(calc)
-            pass
+        self.publisher_.publish(calc)
 
 
 # Create an ADS1115 ADC (16-bit) instance.
@@ -91,7 +89,10 @@ def calculate():
         #values[i] = 3.3*adc.read_adc(i, gain=GAIN)/33000
         v[i] = adc.read_adc(i, gain=GAIN)
         #this is the equation for the curve of inputs vs outputs to convert from input to cm
+        
         values[i] = (5187878*v[i]**(-1.263763)) / 100
+         
+
         time.sleep(0.03)
 
     #insert new values, pop oldest values.
@@ -102,8 +103,8 @@ def calculate():
         avg1 = sum(stack1)/len(stack1)
         avg2 = sum(stack2)/len(stack2)
         
-        if values[0] < avg1*1.5 and values[0] > avg1*0.5:
-            if values[1] < avg2*1.5 and values[1] > avg2*0.5:
+        if values[0] < 0.15*1.5:
+            if values[1] < 0.15*1.5:
                 stack1.insert(0, values[0])
                 stack2.insert(0, values[0]) 
 
@@ -120,7 +121,7 @@ def calculate():
     #check if the values are in the range and valid
     #TODO previous groups have mentioned that this could use tuning
     
-    return distance(stack1[0], stack2[0]) 
+    return -1,-1 
 
 def distance(sensor1_distance, sensor2_distance):
     '''
@@ -136,6 +137,7 @@ def distance(sensor1_distance, sensor2_distance):
                     distance_angle_calc (str): A string tuple containing the distance_from_wall (cm)
                     and the angle_between_wall (deg) in the format: 'A,B'
     '''
+        
 
     # set angle_between_sensors as the angle between the two IR sensors
     angle_between_sensors = 20

@@ -10,7 +10,11 @@ def loadMap(mapGraph):
     with open('/var/local/map.csv') as csvfile:
     # with open('map.csv') as csvfile:
         reader = csv.reader(csvfile,delimiter=",")
+        row_count = 0
         for row in reader:
+            if row_count == 0:
+                row_count += 1
+                continue
             mapGraph.append((row[0],((row[1],row[2]),(row[3],row[4]),(row[5],row[6]),(row[7],row[8]))))
     return mapGraph
 
