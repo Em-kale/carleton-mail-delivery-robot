@@ -164,11 +164,6 @@ class IntersectionReachedLeftWallLost(DriverState):
         # TODO this should check that a wall is actually found before switching state.
         if(data.data != "-1"):
            return IntersectionReachedLeftWallFollowing()
-        else:
-            action = String()
-            action.data = "0.2:0.00"  # go right
-            actionPublisher.publish(action)
-            return self
 
         action = String()
         action = data
