@@ -1,9 +1,10 @@
 # Carleton University Mail Delivery Robot
-By Stephen Wicklund & Emily Clarke
+Developed by Emmitt Luhning, Favour Olotu, Jacob Charpentier, Chase Scott
+Built on previous iteration by Stephen Wicklund & Emily Clarke  
 
-Contact: stevewicklund@gmail.com
+Contact: emmittluhning@gmail.com
 
-This repository is for the 2021-2022 Capstone project titled Carleton University Mail Delivery Robot.
+This repository is for the 2023-2023 Capstone project titled Carleton University Mail Delivery Robot.
 
 ## Overview
 
