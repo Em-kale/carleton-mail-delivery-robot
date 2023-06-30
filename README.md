@@ -1,5 +1,6 @@
 # Carleton University Mail Delivery Robot
 Developed by Emmitt Luhning, Favour Olotu, Jacob Charpentier, Chase Scott
+
 Built on previous iteration by Stephen Wicklund & Emily Clarke  
 
 Contact: emmittluhning@gmail.com
